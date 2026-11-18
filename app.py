@@ -4,1176 +4,269 @@ import numpy as np
 import plotly.graph_objects as go
 import plotly.express as px
 import folium
+from folium.plugins import MarkerCluster, MiniMap, Fullscreen, MeasureControl, MousePosition
 from streamlit_folium import st_folium
-
-# =====================================================
-# CAPTRACE 4.0 — FUTURISTIC INTELLIGENCE COMMAND CENTER
-# =====================================================
-
-st.set_page_config(
-    page_title="CAPTRACE | Intelligence Command Center",
-    page_icon=None,
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
-
-# =====================================================
-# DESIGN SYSTEM
-# =====================================================
-
-GREEN = "#00A884"
-DARK = "#063F3A"
-NAVY = "#102D3C"
-CYAN = "#00B8D9"
-GOLD = "#E7B95B"
-WHITE = "#FFFFFF"
-
-st.markdown("""
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap');
-
-html, body, [class*="css"] {
-    font-family: 'Inter', sans-serif;
-}
-
-.stApp {
-    background:
-        radial-gradient(
-            circle at 85% 5%,
-            rgba(0,184,217,0.09),
-            transparent 30%
-        ),
-        radial-gradient(
-            circle at 10% 85%,
-            rgba(0,168,132,0.07),
-            transparent 35%
-        ),
-        #F4F9FA;
-    color: #102D3C;
-}
-
-/* SIDEBAR */
-
-[data-testid="stSidebar"] {
-    background:
-        linear-gradient(
-            165deg,
-            #063F3A 0%,
-            #082F35 55%,
-            #071F2D 100%
-        );
-    border-right: 1px solid #155E58;
-}
-
-[data-testid="stSidebar"] * {
-    color: #E9FFFA !important;
-}
-
-[data-testid="stSidebar"] .stRadio label {
-    font-weight: 600;
-}
-
-[data-testid="stSidebar"] div[role="radiogroup"] label {
-    padding: 12px;
-    border-radius: 12px;
-    margin-bottom: 5px;
-    transition: all 0.2s ease;
-}
-
-[data-testid="stSidebar"] div[role="radiogroup"] label:hover {
-    background: rgba(255,255,255,0.09);
-}
-
-/* HEADINGS */
-
-h1, h2, h3 {
-    font-family: 'Space Grotesk', sans-serif !important;
-    color: #083D3A !important;
-    letter-spacing: -0.8px;
-}
-
-h1 {
-    font-size: 2.6rem !important;
-    font-weight: 700 !important;
-}
-
-h2 {
-    font-size: 1.7rem !important;
-}
-
-p, label, span {
-    font-family: 'Inter', sans-serif;
-}
-
-/* HEADER */
-
-.hero {
-    background:
-        radial-gradient(
-            circle at 90% 20%,
-            rgba(0,220,190,0.25),
-            transparent 35%
-        ),
-        linear-gradient(
-            115deg,
-            #063F3A,
-            #08675C,
-            #087E76
-        );
-    border-radius: 24px;
-    padding: 35px 40px;
-    color: white;
-    margin-bottom: 28px;
-    position: relative;
-    overflow: hidden;
-    box-shadow: 0 15px 35px rgba(6,63,58,0.15);
-}
-
-.hero::after {
-    content: "";
-    position: absolute;
-    right: -60px;
-    top: -100px;
-    width: 320px;
-    height: 320px;
-    border: 1px solid rgba(255,255,255,0.17);
-    border-radius: 50%;
-    box-shadow:
-        0 0 0 45px rgba(255,255,255,0.035),
-        0 0 0 90px rgba(255,255,255,0.025);
-    pointer-events: none;
-}
-
-.hero-title {
-    font-family: 'Space Grotesk', sans-serif;
-    font-size: 42px;
-    font-weight: 700;
-    letter-spacing: -1.5px;
-    color: white;
-}
-
-.hero-subtitle {
-    font-size: 15px;
-    color: #C6F6EC;
-    margin-top: 8px;
-}
-
-.hero-tag {
-    display: inline-block;
-    background: rgba(255,255,255,0.12);
-    border: 1px solid rgba(255,255,255,0.25);
-    border-radius: 30px;
-    padding: 7px 15px;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 1.5px;
-    margin-bottom: 16px;
-    color: #FFFFFF;
-}
-
-/* METRIC CARDS */
-
-[data-testid="stMetric"] {
-    background:
-        linear-gradient(
-            145deg,
-            #FFFFFF,
-            #F8FFFD
-        );
-    border: 1px solid #D9EAE6;
-    border-radius: 20px;
-    padding: 24px;
-    box-shadow:
-        0 8px 28px rgba(9,70,65,0.055);
-    transition: transform 0.25s ease;
-    min-height: 145px;
-}
-
-[data-testid="stMetric"]:hover {
-    transform: translateY(-4px);
-    border-color: #00A884;
-}
-
-[data-testid="stMetricLabel"] {
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 0.4px;
-    color: #526E70;
-}
-
-[data-testid="stMetricValue"] {
-    font-family: 'Space Grotesk', sans-serif;
-    font-size: 34px;
-    font-weight: 700;
-    color: #07584F;
-}
-
-[data-testid="stMetricDelta"] {
-    font-size: 12px;
-}
-
-/* PANELS */
-
-[data-testid="stPlotlyChart"] {
-    background: white;
-    border: 1px solid #E0ECE9;
-    border-radius: 20px;
-    padding: 12px;
-    box-shadow: 0 5px 25px rgba(0,0,0,0.025);
-}
-
-/* BUTTONS */
-
-.stButton > button {
-    background: linear-gradient(
-        110deg,
-        #087D70,
-        #00A884
-    );
-    color: white;
-    border: none;
-    border-radius: 12px;
-    padding: 12px 22px;
-    font-weight: 700;
-    box-shadow: 0 6px 16px rgba(0,168,132,0.15);
-}
-
-.stButton > button:hover {
-    background: #065F55;
-    color: white;
-    border: none;
-}
-
-/* INPUTS */
-
-div[data-baseweb="select"] > div,
-div[data-baseweb="input"] > div {
-    background-color: white;
-    border-radius: 12px;
-    border-color: #D5E7E3;
-}
-
-/* TABS */
-
-.stTabs [data-baseweb="tab-list"] {
-    gap: 12px;
-}
-
-.stTabs [data-baseweb="tab"] {
-    border-radius: 10px;
-    padding: 12px 20px;
-    font-weight: 600;
-}
-
-/* CUSTOM COMPONENTS */
-
-.section-label {
-    color: #078C7B;
-    font-size: 11px;
-    font-weight: 800;
-    letter-spacing: 2px;
-    margin-bottom: 7px;
-}
-
-.section-heading {
-    font-family: 'Space Grotesk', sans-serif;
-    color: #083D3A;
-    font-size: 24px;
-    font-weight: 700;
-    margin-bottom: 20px;
-}
-
-.tech-panel {
-    background: white;
-    border: 1px solid #DDECE8;
-    border-radius: 18px;
-    padding: 24px;
-    margin-bottom: 15px;
-    box-shadow: 0 8px 25px rgba(0,0,0,0.025);
-}
-
-.tech-number {
-    font-family: 'Space Grotesk', sans-serif;
-    font-size: 28px;
-    color: #008F7A;
-    font-weight: 700;
-}
-
-.tech-title {
-    font-size: 15px;
-    color: #173F43;
-    font-weight: 700;
-}
-
-.tech-description {
-    color: #587477;
-    font-size: 13px;
-    line-height: 1.8;
-}
-
-.status-pill {
-    display: inline-block;
-    background: #DDF8F0;
-    color: #087B66;
-    padding: 7px 14px;
-    border-radius: 30px;
-    font-size: 11px;
-    font-weight: 800;
-    letter-spacing: 0.7px;
-}
-
-[data-testid="stDataFrame"] {
-    border: 1px solid #DDECE8;
-    border-radius: 15px;
-    overflow: hidden;
-}
-
-hr {
-    border-color: #DCEAE7 !important;
-}
-
-@media (max-width: 768px) {
-    .hero {
-        padding: 24px;
-    }
-    .hero-title {
-        font-size: 30px;
-    }
-}
-</style>
-""", unsafe_allow_html=True)
-
-# =====================================================
-# DATA
-# =====================================================
-
-rng = np.random.default_rng(42)
-
-zones = [
-    "Z1 - Coastal",
-    "Z2 - Transition",
-    "Z3 - Inland"
-]
-
-species = [
-    "Rhizophora mucronata",
-    "Rhizophora apiculata",
-    "Avicennia marina",
-    "Avicennia alba",
-    "Sonneratia alba"
-]
-
-sensor_data = pd.DataFrame({
-    "Sensor ID": [f"AJR-{i:03d}" for i in range(1, 25)],
-    "Zone": rng.choice(zones, 24),
-    "Temperature": np.round(rng.uniform(27, 33, 24), 1),
-    "Salinity": np.round(rng.uniform(10, 32, 24), 1),
-    "pH": np.round(rng.uniform(6.5, 8.2, 24), 2),
-    "Moisture": np.round(rng.uniform(55, 90, 24), 1)
-})
-
-capsule_data = pd.DataFrame({
-    "Capsule ID": [f"CAP-{i:04d}" for i in range(1, 101)],
-    "Zone": rng.choice(zones, 100),
-    "Species": rng.choice(species, 100),
-    "Status": rng.choice(
-        ["Distributed", "Monitoring", "Established"],
-        100
-    )
-})
-
-months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"]
-
-performance = pd.DataFrame({
-    "Month": months,
-    "Vegetation Health": [42, 47, 51, 56, 62, 68],
-    "Capsule Establishment": [20, 29, 38, 46, 53, 61],
-    "Restoration Coverage": [15, 22, 34, 45, 58, 72]
-})
-
-# =====================================================
-# FUNCTIONS
-# =====================================================
-
-def section(label, title):
-    st.markdown(
-        f"""
-        <div class="section-label">{label}</div>
-        <div class="section-heading">{title}</div>
-        """,
-        unsafe_allow_html=True
-    )
-
-
-def tech_card(number, title, description):
-    st.markdown(
-        f"""
-        <div class="tech-panel">
-            <div class="tech-number">{number}</div>
-            <div class="tech-title">{title}</div>
-            <div class="tech-description">{description}</div>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-
-
-def chart_style(fig, height=350):
-    fig.update_layout(
-        template="plotly_white",
-        height=height,
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
-        font=dict(
-            family="Inter",
-            color="#294E53"
-        ),
-        margin=dict(l=25, r=25, t=30, b=25),
-        legend=dict(
-            orientation="h",
-            y=-0.2
-        ),
-        hoverlabel=dict(
-            bgcolor="#073F3A",
-            font_color="white"
-        )
-    )
-    return fig
-
-
-def make_map(show_sensors=True, show_capsules=True, show_zones=True):
-
-    m = folium.Map(
-        location=[-6.94, 110.48],
-        zoom_start=12,
-        tiles="CartoDB positron"
-    )
-
+from datetime import date, timedelta
+from html import escape
+
+st.set_page_config(page_title='CAPTRACE | Coastal Intelligence', layout='wide', initial_sidebar_state='expanded')
+G='#078F78'; NAVY='#12394A'; CYAN='#0BA6C6'; GOLD='#D7A84A'; MUTED='#607A82'
+
+st.markdown('''<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+html,body,.stApp,[data-testid="stAppViewContainer"]{background:#F1F7F8!important;color:#143947!important;font-family:'DM Sans',sans-serif!important}
+[data-testid="stHeader"]{background:rgba(241,247,248,.88)!important}
+[data-testid="stSidebar"]{background:linear-gradient(170deg,#093E43,#092D40)!important;border-right:1px solid #14636A}
+[data-testid="stSidebar"] *{color:#F1FFFF!important}
+[data-testid="stSidebar"] [role="radiogroup"] label{padding:9px 12px;border-radius:11px;margin:3px 0}
+[data-testid="stSidebar"] [role="radiogroup"] label:has(input:checked){background:#176B68!important}
+h1,h2,h3{font-family:'Space Grotesk',sans-serif!important;color:#12394A!important;letter-spacing:-.035em!important}
+h1{font-size:2.5rem!important}h2{font-size:1.55rem!important}
+[data-testid="stMetric"]{background:#fff;border:1px solid #DDEBED;border-radius:17px;padding:19px;box-shadow:0 9px 27px #0A48510A}
+[data-testid="stMetricLabel"]{font-weight:700;color:#57717A!important}
+[data-testid="stMetricValue"]{font-family:'Space Grotesk';color:#0C655D!important;font-size:2rem!important}
+[data-testid="stPlotlyChart"], [data-testid="stDataFrame"]{background:white;border:1px solid #DDEBED;border-radius:17px;padding:8px}
+.stButton button[kind="primary"], .stDownloadButton button{background:#087D70;color:white;border:0;border-radius:11px}
+.stTabs [data-baseweb="tab"]{font-weight:700}
+.hero{background:linear-gradient(118deg,#063D46,#087D77 64%,#0C91A7);border-radius:22px;padding:32px 35px;color:#fff;position:relative;overflow:hidden;margin-bottom:24px;box-shadow:0 16px 34px #0B5D6220}
+.hero:after{content:'';position:absolute;width:320px;height:320px;border:1px solid #FFFFFF40;border-radius:50%;right:-75px;top:-150px;box-shadow:0 0 0 40px #FFFFFF0B,0 0 0 85px #FFFFFF08;pointer-events:none}
+.hero .eyebrow{font-size:11px;letter-spacing:2.4px;color:#B6F4EA;font-weight:800}
+.hero .title{font:700 38px 'Space Grotesk',sans-serif;letter-spacing:-1.5px;color:white;margin:10px 0}
+.hero .desc{font-size:14px;color:#D8F5F3;max-width:720px}
+.panel{background:white;border:1px solid #DCEAEC;border-radius:17px;padding:21px;margin:8px 0 18px;box-shadow:0 8px 28px #0A485109}
+.panel-title{font:700 17px 'Space Grotesk',sans-serif;color:#164653;margin-bottom:8px}
+.panel-text{font-size:13px;line-height:1.7;color:#5B7680}
+.badge{display:inline-block;padding:5px 10px;background:#E0F5F0;color:#086A5C;border-radius:20px;font-size:11px;font-weight:800;letter-spacing:.7px}
+.step{display:inline-block;border:1px solid #CBE7E4;background:#F6FBFA;border-radius:12px;padding:13px;margin:5px;color:#174D54;font-weight:700}
+small{color:#5B7580}
+@media(max-width:700px){.hero{padding:23px}.hero .title{font-size:27px}}
+</style>''',unsafe_allow_html=True)
+
+@st.cache_data
+def make_data():
+    r=np.random.default_rng(2026)
+    zones=['Z1 | Seaward','Z2 | Transition','Z3 | Landward']
+    species=['Avicennia marina','Avicennia alba','Rhizophora mucronata','Rhizophora apiculata','Sonneratia alba']
+    sensors=pd.DataFrame({'Sensor ID':[f'AJR-{i:03}' for i in range(1,37)],'Zone':r.choice(zones,36),'Temperature (°C)':r.uniform(27,34,36).round(1),'Salinity (ppt)':r.uniform(9,34,36).round(1),'pH':r.uniform(6.3,8.4,36).round(2),'Moisture (%)':r.uniform(48,91,36).round(1),'Latitude':-6.94+r.uniform(-.023,.023,36),'Longitude':110.48+r.uniform(-.03,.03,36)})
+    capsules=pd.DataFrame({'Capsule ID':[f'CAP-{i:04}' for i in range(1,301)],'Zone':r.choice(zones,300),'Species':r.choice(species,300),'Stage':r.choice(['Distributed','Observed','Established','Requires Review'],300,p=[.35,.31,.23,.11]),'Deployment Date':pd.to_datetime('2026-08-01')+pd.to_timedelta(r.integers(0,85,300),unit='D'),'Latitude':-6.94+r.uniform(-.026,.026,300),'Longitude':110.48+r.uniform(-.035,.035,300)})
+    days=pd.date_range('2026-10-01',periods=42)
+    history=pd.DataFrame({'Date':days,'Health Index':np.clip(50+np.arange(42)*.42+r.normal(0,2,42),0,100),'Establishment (%)':np.clip(29+np.arange(42)*.55+r.normal(0,2.2,42),0,100),'Coverage (ha)':np.clip(12+np.arange(42)*.32+r.normal(0,.8,42),0,None)})
+    return sensors,capsules,history
+sensors,capsules,history=make_data()
+
+PLOT=dict(template='plotly_white',paper_bgcolor='rgba(0,0,0,0)',plot_bgcolor='rgba(0,0,0,0)',font=dict(family='DM Sans',color='#244957'),margin=dict(l=12,r=12,t=22,b=20),hovermode='x unified')
+def chart(fig,height=340):
+    fig.update_layout(**PLOT,height=height)
+    st.plotly_chart(fig,use_container_width=True,config={'displaylogo':False})
+def section(title,subtitle=None):
+    st.subheader(title)
+    if subtitle: st.caption(subtitle)
+def card(title,description,tag='CAPTRACE'):
+    st.markdown(f'<div class="panel"><span class="badge">{escape(tag)}</span><div class="panel-title" style="margin-top:12px">{escape(title)}</div><div class="panel-text">{escape(description)}</div></div>',unsafe_allow_html=True)
+
+def real_map(show_sensors=True,show_capsules=True,show_zones=True,basemap='OpenStreetMap',cluster=True):
+    # Real-world map tiles. Point locations are intentionally generated demonstration coordinates.
+    tile={'OpenStreetMap':'OpenStreetMap','Light':'CartoDB positron','Satellite':'Esri.WorldImagery'}[basemap]
+    if tile=='Esri.WorldImagery':
+        m=folium.Map(location=[-6.94,110.48],zoom_start=12,tiles=None,control_scale=True)
+        folium.TileLayer(tiles='https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',attr='Tiles © Esri and contributors',name='Esri satellite').add_to(m)
+    else: m=folium.Map(location=[-6.94,110.48],zoom_start=12,tiles=tile,control_scale=True)
     if show_zones:
-        folium.Circle(
-            location=[-6.94, 110.48],
-            radius=1100,
-            color="#E7B95B",
-            weight=2,
-            fill=True,
-            fill_color="#E7B95B",
-            fill_opacity=0.10,
-            tooltip="Restoration Planning Area"
-        ).add_to(m)
-
+        fg=folium.FeatureGroup(name='Conceptual zones')
+        for name,lat,lon,radius,color in [('Z1 | Seaward',-6.927,110.476,650,'#0BA6C6'),('Z2 | Transition',-6.941,110.481,750,'#D7A84A'),('Z3 | Landward',-6.955,110.485,650,'#078F78')]:
+            folium.Circle([lat,lon],radius=radius,color=color,fill=True,fill_opacity=.12,tooltip=name+' | schematic area').add_to(fg)
+        fg.add_to(m)
     if show_sensors:
-        for i in range(12):
-            lat = -6.94 + rng.uniform(-0.015, 0.015)
-            lon = 110.48 + rng.uniform(-0.015, 0.015)
-
-            folium.CircleMarker(
-                [lat, lon],
-                radius=7,
-                color="#008F7A",
-                fill=True,
-                fill_color="#00A884",
-                fill_opacity=0.9,
-                popup=f"Smart Ajir AJR-{i+1:03d}",
-                tooltip=f"Smart Ajir {i+1}"
-            ).add_to(m)
-
+        fg=folium.FeatureGroup(name='Smart Ajir points (illustrative)')
+        parent=MarkerCluster().add_to(fg) if cluster else fg
+        for _,row in sensors.iterrows():
+            folium.CircleMarker([row['Latitude'],row['Longitude']],radius=6,color='#047D70',fill=True,fill_color='#14B8A6',fill_opacity=.9,tooltip=row['Sensor ID'],popup=f"{row['Sensor ID']} | {row['Zone']} | pH {row['pH']}").add_to(parent)
+        fg.add_to(m)
     if show_capsules:
-        for i in range(15):
-            lat = -6.94 + rng.uniform(-0.02, 0.02)
-            lon = 110.48 + rng.uniform(-0.02, 0.02)
-
-            folium.CircleMarker(
-                [lat, lon],
-                radius=5,
-                color="#008DB0",
-                fill=True,
-                fill_color="#00B8D9",
-                fill_opacity=0.85,
-                popup=f"Capsule Site {i+1}",
-                tooltip=f"Capsule Site {i+1}"
-            ).add_to(m)
-
-    folium.LayerControl().add_to(m)
+        fg=folium.FeatureGroup(name='Capsule points (illustrative)')
+        parent=MarkerCluster().add_to(fg) if cluster else fg
+        for _,row in capsules.head(120).iterrows():
+            folium.CircleMarker([row['Latitude'],row['Longitude']],radius=4,color='#147DB7',fill=True,fill_color='#24B5D2',fill_opacity=.8,tooltip=row['Capsule ID'],popup=f"{row['Capsule ID']} | {row['Species']}").add_to(parent)
+        fg.add_to(m)
+    folium.LayerControl(collapsed=False).add_to(m)
+    Fullscreen().add_to(m); MiniMap(toggle_display=True).add_to(m); MeasureControl(primary_length_unit='meters').add_to(m)
+    MousePosition(position='bottomright',separator=' | ',prefix='Coordinates').add_to(m)
     return m
 
+def show_map(key,height=480):
+    basemap=st.selectbox('Basemap',['OpenStreetMap','Light','Satellite'],key=f'base_{key}')
+    layers=st.multiselect('Visible layers',['Smart Ajir','Capsules','Conceptual zones'],default=['Smart Ajir','Capsules','Conceptual zones'],key=f'layers_{key}')
+    st_folium(real_map('Smart Ajir' in layers,'Capsules' in layers,'Conceptual zones' in layers,basemap),height=height,width=None,returned_objects=[],key=f'map_{key}')
+    st.caption('Real basemap of the Sayung area. Device markers and zone overlays are illustrative placements, not verified field coordinates.')
 
-# =====================================================
-# SIDEBAR
-# =====================================================
-
+pages=['Command Center','UAV Intelligence','Capsule Tracking','Smart Ajir Network','Geospatial Explorer','Restoration Analysis','Conservation Analytics','CPS Integration','Jaga Mangrove']
 with st.sidebar:
-
-    st.markdown("""
-    <div style="
-        padding:18px 5px 22px 5px;
-    ">
-        <div style="
-            font-family:'Space Grotesk';
-            font-size:29px;
-            font-weight:700;
-            letter-spacing:1px;
-            color:white;
-        ">
-            CAPTRACE
-        </div>
-
-        <div style="
-            font-size:10px;
-            letter-spacing:2px;
-            color:#91D8C9;
-            margin-top:5px;
-        ">
-            INTELLIGENCE PLATFORM
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-
+    st.markdown('<div style="font:700 32px Space Grotesk;color:white;letter-spacing:-1px;padding:10px 0">CAPTRACE<span style="color:#5BE0CE">.</span></div><div style="font-size:10px;letter-spacing:2px;color:#A4E6E2;margin-bottom:20px">COASTAL INTELLIGENCE SYSTEM</div>',unsafe_allow_html=True)
+    page=st.radio('NAVIGATION',pages,label_visibility='collapsed')
     st.divider()
+    st.markdown('**REGION**  \\nSayung, Demak, Central Java')
+    st.caption('UAV · CAPSULE · SMART AJIR · CPS 5C')
 
-    menu = st.radio(
-        "SYSTEM NAVIGATION",
-        [
-            "Command Center",
-            "UAV Intelligence",
-            "Capsule Tracking",
-            "Smart Ajir Network",
-            "Geospatial Explorer",
-            "Restoration Analysis",
-            "Conservation Analytics",
-            "CPS Integration",
-            "Jaga Mangrove"
-        ],
-        label_visibility="collapsed"
-    )
+st.markdown(f'<div class="hero"><div class="eyebrow">CAPTRACE / COASTAL RESTORATION SYSTEM</div><div class="title">{escape(page)}</div><div class="desc">Integrated mangrove intelligence, traceability, geospatial exploration and community-based maritime ecotourism.</div></div>',unsafe_allow_html=True)
 
-    st.divider()
-
-    st.markdown("""
-    <div style="padding:15px 5px">
-        <div style="
-            font-size:11px;
-            color:#8FD6C6;
-            letter-spacing:1.5px;
-        ">
-            OPERATIONAL REGION
-        </div>
-        <div style="
-            font-size:14px;
-            font-weight:700;
-            color:white;
-            margin-top:7px;
-        ">
-            SAYUNG, DEMAK
-        </div>
-        <div style="
-            font-size:11px;
-            color:#A3D9D0;
-            margin-top:4px;
-        ">
-            CENTRAL JAVA, INDONESIA
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-
-# =====================================================
-# HERO
-# =====================================================
-
-st.markdown(f"""
-<div class="hero">
-    <div class="hero-tag">
-        ENVIRONMENTAL INTELLIGENCE SYSTEM
-    </div>
-    <div class="hero-title">
-        {menu}
-    </div>
-    <div class="hero-subtitle">
-        CAPTRACE | Integrated Mangrove Restoration
-        & Conservation Intelligence
-    </div>
-    <div style="margin-top:20px">
-        <span style="
-            background:rgba(255,255,255,0.12);
-            border:1px solid rgba(255,255,255,0.25);
-            border-radius:30px;
-            padding:7px 14px;
-            font-size:11px;
-            color:white;
-        ">
-            SAYUNG COASTAL REGION
-        </span>
-    </div>
-</div>
-""", unsafe_allow_html=True)
-
-# =====================================================
-# COMMAND CENTER
-# =====================================================
-
-if menu == "Command Center":
-
-    section("SYSTEM OVERVIEW", "Conservation Intelligence Overview")
-
-    a, b, c, d = st.columns(4)
-
-    a.metric("MANGROVE HEALTH INDEX", "68%", "+4.2%")
-    b.metric("SMART AJIR NETWORK", "24", "Registered")
-    c.metric("CAPSULE DISTRIBUTION", "1,250", "+150")
-    d.metric("RESTORATION ZONES", "03", "Monitored")
-
-    st.write("")
-
-    left, right = st.columns([1.5, 1])
-
+if page=='Command Center':
+    section('Environmental Intelligence Overview','Explore monitoring indicators, interactive layers and restoration trends.')
+    a,b,c,d=st.columns(4)
+    a.metric('Vegetation index',f"{history['Health Index'].iloc[-1]:.1f}",'+4.2')
+    b.metric('Smart Ajir nodes',len(sensors))
+    c.metric('Capsule registry',len(capsules))
+    d.metric('Planning zones','03')
+    left,right=st.columns([1.5,1])
     with left:
-        section("PERFORMANCE", "Restoration Development")
-
-        fig = go.Figure()
-
-        fig.add_trace(go.Scatter(
-            x=months,
-            y=performance["Vegetation Health"],
-            mode="lines+markers",
-            name="Vegetation Health",
-            line=dict(color=GREEN, width=4),
-            marker=dict(size=9),
-            fill="tozeroy",
-            fillcolor="rgba(0,168,132,0.08)"
-        ))
-
-        fig.add_trace(go.Scatter(
-            x=months,
-            y=performance["Capsule Establishment"],
-            mode="lines+markers",
-            name="Capsule Establishment",
-            line=dict(color=CYAN, width=3),
-            marker=dict(size=8)
-        ))
-
-        fig = chart_style(fig)
-        st.plotly_chart(fig, use_container_width=True)
-
+        section('Restoration trends')
+        f=go.Figure()
+        for col,color in [('Health Index',G),('Establishment (%)',CYAN)]: f.add_trace(go.Scatter(x=history.Date,y=history[col],name=col,mode='lines',line=dict(color=color,width=3),fill='tozeroy' if col=='Health Index' else None,fillcolor='rgba(7,143,120,.06)'))
+        chart(f)
     with right:
-        section("ECOSYSTEM STATUS", "Vegetation Classification")
-
-        fig = go.Figure(data=[
-            go.Pie(
-                labels=[
-                    "Healthy",
-                    "Moderate",
-                    "Degraded",
-                    "Open Area"
-                ],
-                values=[68, 17, 10, 5],
-                hole=0.72,
-                marker=dict(
-                    colors=[
-                        GREEN,
-                        GOLD,
-                        CYAN,
-                        "#DDE9E6"
-                    ]
-                ),
-                textinfo="percent",
-                textposition="outside"
-            )
-        ])
-
-        fig = chart_style(fig)
-        st.plotly_chart(fig, use_container_width=True)
-
-    st.write("")
-
-    section("GEOSPATIAL INTELLIGENCE", "Coastal Restoration Network")
-
-    st_folium(
-        make_map(),
-        width=None,
-        height=430,
-        returned_objects=[]
-    )
-
-    st.write("")
-
-    section("NETWORK STATUS", "Smart Ajir Registry")
-
-    st.dataframe(
-        sensor_data.head(8),
-        use_container_width=True,
-        hide_index=True
-    )
-
-# =====================================================
-# UAV INTELLIGENCE
-# =====================================================
-
-elif menu == "UAV Intelligence":
-
-    section("AERIAL OPERATIONS", "UAV Mission Configuration")
-
-    a, b, c = st.columns(3)
-
-    mission = a.selectbox(
-        "Mission Type",
-        [
-            "Vegetation Mapping",
-            "Capsule Distribution",
-            "Environmental Monitoring"
-        ]
-    )
-
-    altitude = b.slider(
-        "Flight Altitude (m)",
-        20, 150, 60
-    )
-
-    coverage = c.slider(
-        "Coverage Area (ha)",
-        1, 100, 25
-    )
-
-    st.write("")
-
-    x, y, z = st.columns(3)
-
-    x.metric("FLIGHT ALTITUDE", f"{altitude} m")
-    y.metric("TARGET COVERAGE", f"{coverage} ha")
-    z.metric("MISSION SEGMENTS", max(1, coverage // 5))
-
-    st.write("")
-
-    section("MISSION INTELLIGENCE", "Flight Planning")
-
-    if st.button("Generate Mission Configuration"):
-
-        st.success("Mission configuration generated.")
-
-        tech_card(
-            "01",
-            "Selected Mission",
-            mission
-        )
-
-        tech_card(
-            "02",
-            "Flight Parameters",
-            f"Altitude: {altitude} m | Coverage: {coverage} ha"
-        )
-
-        tech_card(
-            "03",
-            "Mission Planning",
-            "Conceptual mission segments have been generated."
-        )
-
-# =====================================================
-# CAPSULE TRACKING
-# =====================================================
-
-elif menu == "Capsule Tracking":
-
-    section("TRACEABILITY NETWORK", "Capsule Distribution System")
-
-    a, b, c = st.columns(3)
-
-    a.metric("REGISTERED CAPSULES", "1,250")
-    b.metric("MONITORING RECORDS", "845")
-    c.metric("RESTORATION ZONES", "03")
-
-    st.write("")
-
-    left, right = st.columns([2, 1])
-
-    with left:
-        search = st.text_input(
-            "Search Capsule ID",
-            placeholder="CAP-0001"
-        )
-
-    with right:
-        zone = st.selectbox(
-            "Restoration Zone",
-            ["All Zones"] + zones
-        )
-
-    filtered = capsule_data.copy()
-
-    if search:
-        filtered = filtered[
-            filtered["Capsule ID"].str.contains(
-                search,
-                case=False,
-                regex=False
-            )
-        ]
-
-    if zone != "All Zones":
-        filtered = filtered[
-            filtered["Zone"] == zone
-        ]
-
-    st.dataframe(
-        filtered,
-        use_container_width=True,
-        hide_index=True
-    )
-
-    st.download_button(
-        "Export Capsule Registry",
-        filtered.to_csv(index=False),
-        "captrace_capsules.csv",
-        "text/csv"
-    )
-
-# =====================================================
-# SMART AJIR
-# =====================================================
-
-elif menu == "Smart Ajir Network":
-
-    section("SENSOR INTELLIGENCE", "Smart Ajir Monitoring Network")
-
-    sensor = st.selectbox(
-        "Select Sensor Node",
-        sensor_data["Sensor ID"]
-    )
-
-    row = sensor_data[
-        sensor_data["Sensor ID"] == sensor
-    ].iloc[0]
-
-    a, b, c, d = st.columns(4)
-
-    a.metric("TEMPERATURE", f"{row['Temperature']} °C")
-    b.metric("SALINITY", f"{row['Salinity']} ppt")
-    c.metric("SOIL PH", f"{row['pH']}")
-    d.metric("MOISTURE", f"{row['Moisture']}%")
-
-    st.write("")
-
-    section("ENVIRONMENTAL ANALYTICS", "Sensor Parameter Trends")
-
-    days = pd.date_range("2026-11-01", periods=20)
-
-    trend_rng = np.random.default_rng(100)
-
-    trend = pd.DataFrame({
-        "Date": days,
-        "Temperature": trend_rng.uniform(27, 33, 20),
-        "Salinity": trend_rng.uniform(12, 30, 20)
-    })
-
-    fig = go.Figure()
-
-    fig.add_trace(go.Scatter(
-        x=trend["Date"],
-        y=trend["Temperature"],
-        name="Temperature",
-        mode="lines+markers",
-        line=dict(color=GREEN, width=3)
-    ))
-
-    fig.add_trace(go.Scatter(
-        x=trend["Date"],
-        y=trend["Salinity"],
-        name="Salinity",
-        mode="lines+markers",
-        line=dict(color=CYAN, width=3)
-    ))
-
-    st.plotly_chart(
-        chart_style(fig, 420),
-        use_container_width=True
-    )
-
-    section("SENSOR REGISTRY", "Environmental Monitoring Nodes")
-
-    st.dataframe(
-        sensor_data,
-        use_container_width=True,
-        hide_index=True
-    )
-
-# =====================================================
-# GEOSPATIAL EXPLORER
-# =====================================================
-
-elif menu == "Geospatial Explorer":
-
-    section("GEOSPATIAL INTELLIGENCE", "Restoration Mapping System")
-
-    layers = st.multiselect(
-        "Select Map Layers",
-        [
-            "Smart Ajir",
-            "Capsule Distribution",
-            "Restoration Zones"
-        ],
-        default=[
-            "Smart Ajir",
-            "Capsule Distribution",
-            "Restoration Zones"
-        ]
-    )
-
-    st_folium(
-        make_map(
-            "Smart Ajir" in layers,
-            "Capsule Distribution" in layers,
-            "Restoration Zones" in layers
-        ),
-        width=None,
-        height=600,
-        returned_objects=[]
-    )
-
-# =====================================================
-# RESTORATION ANALYSIS
-# =====================================================
-
-elif menu == "Restoration Analysis":
-
-    section("DECISION INTELLIGENCE", "Site Suitability Assessment")
-
-    left, right = st.columns(2)
-
-    with left:
-        salinity = st.slider(
-            "Salinity (ppt)",
-            0, 45, 20
-        )
-
-        ph = st.slider(
-            "Soil pH",
-            3.0, 10.0, 7.0
-        )
-
-    with right:
-        temperature = st.slider(
-            "Temperature (°C)",
-            20, 40, 29
-        )
-
-        inundation = st.selectbox(
-            "Inundation",
-            ["Low", "Moderate", "High"]
-        )
-
-    score = 0
-
-    if 10 <= salinity <= 30:
-        score += 30
-
-    if 6 <= ph <= 8.5:
-        score += 25
-
-    if 25 <= temperature <= 33:
-        score += 25
-
-    if inundation == "Moderate":
-        score += 20
-    elif inundation == "High":
-        score += 10
-
-    st.write("")
-
-    section("ASSESSMENT RESULTS", "Restoration Suitability Index")
-
-    a, b = st.columns([1, 2])
-
+        section('Capsule stage distribution')
+        counts=capsules.Stage.value_counts()
+        f=go.Figure(go.Pie(labels=counts.index,values=counts.values,hole=.7,marker_colors=[G,CYAN,GOLD,'#B2C9CE']))
+        chart(f)
+    section('Live map explorer interface')
+    show_map('home',430)
+    section('Recent registry')
+    st.dataframe(capsules[['Capsule ID','Zone','Species','Stage']].tail(12),hide_index=True,use_container_width=True)
+
+elif page=='UAV Intelligence':
+    section('UAV Flight Mission Designer','Configure a conceptual mission and inspect its route geometry.')
+    a,b,c=st.columns(3)
+    mission=a.selectbox('Mission',['Vegetation mapping','Capsule distribution','Environmental observation'])
+    altitude=b.slider('Flight altitude (m)',20,150,65)
+    area=c.slider('Coverage (ha)',1,100,24)
+    overlap=st.slider('Image overlap (%)',50,90,75)
+    segments=max(2,int(np.ceil(area/6)))
+    a,b,c=st.columns(3);a.metric('Mission legs',segments);b.metric('Altitude',f'{altitude} m');c.metric('Overlap',f'{overlap}%')
+    f=go.Figure()
+    xs=[];ys=[]
+    for i in range(segments):
+        xs.extend([0,10,None] if i%2==0 else [10,0,None]);ys.extend([i,i,None])
+    f.add_trace(go.Scatter(x=xs,y=ys,mode='lines+markers',line=dict(color=G,width=4),name='Flight path'))
+    f.update_layout(xaxis_title='Relative east-west distance',yaxis_title='Flight leg',showlegend=False)
+    chart(f,370)
+    card('Mission configuration',f'{mission} | {area} ha | {altitude} m altitude | {overlap}% overlap. Flight path is schematic, not a validated aviation plan.','MISSION PLANNER')
+    st.download_button('Export mission parameters',pd.DataFrame([{'Mission':mission,'Altitude (m)':altitude,'Area (ha)':area,'Overlap (%)':overlap,'Segments':segments}]).to_csv(index=False),'captrace_mission.csv','text/csv')
+
+elif page=='Capsule Tracking':
+    section('Capsule Traceability Registry','Search, filter and inspect individual restoration capsules.')
+    a,b,c=st.columns(3)
+    q=a.text_input('Capsule ID search',placeholder='CAP-0001')
+    zone=b.selectbox('Zone',['All']+sorted(capsules.Zone.unique()))
+    stage=c.selectbox('Stage',['All']+sorted(capsules.Stage.unique()))
+    df=capsules.copy()
+    if q:df=df[df['Capsule ID'].str.contains(q,case=False,regex=False)]
+    if zone!='All':df=df[df.Zone==zone]
+    if stage!='All':df=df[df.Stage==stage]
+    a,b,c=st.columns(3);a.metric('Matching records',len(df));b.metric('Species',df.Species.nunique());c.metric('Zones',df.Zone.nunique())
+    st.dataframe(df[['Capsule ID','Zone','Species','Stage','Deployment Date']],hide_index=True,use_container_width=True)
+    st.download_button('Export filtered capsules',df.to_csv(index=False),'captrace_capsule_registry.csv','text/csv')
+    if len(df):
+        chosen=st.selectbox('Inspect capsule',df['Capsule ID'])
+        row=df[df['Capsule ID']==chosen].iloc[0]
+        card(chosen,f"Species: {row['Species']} | Zone: {row['Zone']} | Stage: {row['Stage']} | Registered date: {row['Deployment Date'].date()}",'TRACEABILITY RECORD')
+    section('Distribution by species')
+    species_count=df.Species.value_counts().reset_index();species_count.columns=['Species','Count']
+    if len(species_count):chart(px.bar(species_count,x='Count',y='Species',orientation='h',color='Count',color_continuous_scale=['#C6F0E5',G]),330)
+
+elif page=='Smart Ajir Network':
+    section('Smart Ajir Digital Twin','Inspect environmental parameters for each virtual sensor node.')
+    sid=st.selectbox('Select Smart Ajir',sensors['Sensor ID'])
+    row=sensors[sensors['Sensor ID']==sid].iloc[0]
+    a,b,c,d=st.columns(4)
+    for col,label,unit in [(a,'Temperature (°C)','°C'),(b,'Salinity (ppt)',' ppt'),(c,'pH',''),(d,'Moisture (%)','%')]:
+        col.metric(label,f'{row[label]}{unit}')
+    days=pd.date_range('2026-10-01',periods=30)
+    r=np.random.default_rng(int(sid[-3:]))
+    metric=st.selectbox('Trend parameter',['Temperature (°C)','Salinity (ppt)','pH','Moisture (%)'])
+    trend=row[metric]+r.normal(0,{'Temperature (°C)':.8,'Salinity (ppt)':1.7,'pH':.18,'Moisture (%)':3.2}[metric],len(days))
+    f=go.Figure(go.Scatter(x=days,y=trend,mode='lines+markers',line=dict(color=G,width=3),fill='tozeroy',fillcolor='rgba(7,143,120,.08)'))
+    chart(f,380)
+    section('Sensor comparison')
+    col=st.selectbox('Compare network parameter',['Temperature (°C)','Salinity (ppt)','pH','Moisture (%)'],key='sensor_compare')
+    chart(px.box(sensors,x='Zone',y=col,color='Zone'),360)
+    st.dataframe(sensors.drop(columns=['Latitude','Longitude']),hide_index=True,use_container_width=True)
+
+elif page=='Geospatial Explorer':
+    section('Sayung Geospatial Explorer','Explore real geographic basemaps, map tools and selectable restoration layers.')
+    show_map('geo',620)
+    st.markdown('**Map tools:** zoom, full screen, measurement, mini map, coordinates, layer visibility and marker popups.')
+    card('Geographic accuracy','OpenStreetMap / Esri tiles display real geographic imagery or cartography. Planning circles and device markers are conceptual and must be replaced with surveyed GPS data before field use.','MAP DATA')
+
+elif page=='Restoration Analysis':
+    section('Restoration Decision Support','Adjust environmental parameters and compare indicative site conditions.')
+    a,b=st.columns(2)
     with a:
-        st.metric("SUITABILITY SCORE", f"{score}/100")
-
+        sal=st.slider('Salinity (ppt)',0,45,20)
+        ph=st.slider('Soil pH',3.,10.,7.,.1)
+        substrate=st.selectbox('Substrate',['Mud','Sandy mud','Sand'])
     with b:
-        fig = go.Figure(go.Indicator(
-            mode="gauge+number",
-            value=score,
-            number=dict(
-                font=dict(
-                    size=48,
-                    color=DARK
-                )
-            ),
-            gauge=dict(
-                axis=dict(range=[0, 100]),
-                bar=dict(color=GREEN),
-                bgcolor="#E7F2EF",
-                steps=[
-                    dict(range=[0, 50], color="#FBE8E5"),
-                    dict(range=[50, 75], color="#FFF4D7"),
-                    dict(range=[75, 100], color="#DDF7ED")
-                ]
-            )
-        ))
+        temp=st.slider('Temperature (°C)',20,40,29)
+        flood=st.selectbox('Tidal inundation',['Low','Moderate','High'])
+        exposure=st.selectbox('Wave exposure',['Sheltered','Moderate','Exposed'])
+    score=(25 if 10<=sal<=30 else 8)+(20 if 6<=ph<=8.5 else 5)+(15 if 25<=temp<=33 else 5)+(15 if substrate=='Mud' else 10 if substrate=='Sandy mud' else 3)+(15 if flood=='Moderate' else 8)+(10 if exposure=='Sheltered' else 6 if exposure=='Moderate' else 2)
+    a,b=st.columns([1,2]);a.metric('Indicative suitability',f'{score}/100')
+    with b:
+        fig=go.Figure(go.Indicator(mode='gauge+number',value=score,gauge={'axis':{'range':[0,100]},'bar':{'color':G},'steps':[{'range':[0,45],'color':'#FCE8E6'},{'range':[45,75],'color':'#FFF2D8'},{'range':[75,100],'color':'#D9F4EA'}]}))
+        chart(fig,260)
+    section('Species screening')
+    # Demonstrative logic only: no claim of validated ecological species thresholds.
+    suggestions={'Mud':['Avicennia marina','Rhizophora mucronata'],'Sandy mud':['Avicennia alba','Sonneratia alba'],'Sand':['Site-specific substrate assessment needed']}
+    for sp in suggestions[substrate]:card(sp,'Candidate for further site-specific ecological assessment; verify tidal position, hydrology and local species records.','SCREENING')
+    st.caption('This decision aid uses illustrative rules, not validated species suitability or field measurements.')
 
-        fig = chart_style(fig, 280)
-        st.plotly_chart(fig, use_container_width=True)
+elif page=='Conservation Analytics':
+    section('Conservation Analytics Studio','Compare indicators, inspect distributions and export selected records.')
+    a,b=st.columns(2)
+    metric=a.selectbox('Indicator',['Health Index','Establishment (%)','Coverage (ha)'])
+    view=b.selectbox('Visualization',['Area trend','Bar trend','Rolling average'])
+    values=history[metric].rolling(7,min_periods=1).mean() if view=='Rolling average' else history[metric]
+    f=go.Figure()
+    if view=='Bar trend':f.add_trace(go.Bar(x=history.Date,y=values,marker_color=G))
+    else:f.add_trace(go.Scatter(x=history.Date,y=values,mode='lines+markers',line=dict(color=G,width=3),fill='tozeroy' if view=='Area trend' else None,fillcolor='rgba(7,143,120,.1)'))
+    chart(f,430)
+    a,b=st.columns(2)
+    with a:
+        section('Capsule stages by zone')
+        cross=pd.crosstab(capsules.Zone,capsules.Stage).reset_index()
+        chart(px.bar(cross,x='Zone',y=[x for x in cross.columns if x!='Zone'],barmode='stack'),350)
+    with b:
+        section('Environmental parameter relationships')
+        chart(px.scatter(sensors,x='Salinity (ppt)',y='pH',color='Zone',hover_name='Sensor ID',size='Moisture (%)'),350)
+    st.download_button('Export analytics dataset',history.to_csv(index=False),'captrace_analytics.csv','text/csv')
 
-    if score >= 75:
-        st.success("High suitability")
-    elif score >= 50:
-        st.info("Moderate suitability")
-    else:
-        st.warning("Additional site assessment required")
+elif page=='CPS Integration':
+    section('Cyber-Physical System Architecture','Explore the CAPTRACE 5C integration pathway.')
+    steps=[('01','Connection','UAV imagery, Smart Ajir sensing, capsule identifiers and connectivity.'),('02','Conversion','Transform measurements and imagery into structured environmental indicators.'),('03','Cyber','Store linked spatial records and capsule traceability histories.'),('04','Cognition','Support interpretation, visualization and restoration decisions.'),('05','Configuration','Translate evidence into adaptive field management actions.')]
+    selected=st.select_slider('Select CPS layer',options=[s[1] for s in steps])
+    st.markdown(''.join(f'<span class="step">{escape(n)} · {escape(name)}</span>' for n,name,_ in steps),unsafe_allow_html=True)
+    for n,name,desc in steps:
+        if name==selected:card(name,desc,'CPS '+n)
+    section('Technology relationship')
+    flow=go.Figure(go.Sankey(node=dict(label=['UAV','Capsules','Smart Ajir','Data platform','Decision support','Field action'],pad=20,thickness=19,color=[CYAN,G,GOLD,NAVY,G,CYAN]),link=dict(source=[0,1,2,3,4],target=[3,3,3,4,5],value=[3,2,3,8,8],color=['rgba(11,166,198,.25)','rgba(7,143,120,.25)','rgba(215,168,74,.3)','rgba(18,57,74,.2)','rgba(7,143,120,.25)'])))
+    chart(flow,380)
 
-    st.caption(
-        "Indicative rule-based scoring; ecological thresholds "
-        "require site- and species-specific validation."
-    )
-
-# =====================================================
-# CONSERVATION ANALYTICS
-# =====================================================
-
-elif menu == "Conservation Analytics":
-
-    section("PERFORMANCE INTELLIGENCE", "Conservation Analytics")
-
-    metric = st.selectbox(
-        "Select Performance Indicator",
-        [
-            "Vegetation Health",
-            "Capsule Establishment",
-            "Restoration Coverage"
-        ]
-    )
-
-    fig = go.Figure()
-
-    fig.add_trace(go.Bar(
-        x=performance["Month"],
-        y=performance[metric],
-        marker=dict(
-            color=performance[metric],
-            colorscale=[
-                [0, "#BDEDE0"],
-                [1, "#008F7A"]
-            ],
-            line=dict(width=0)
-        ),
-        text=performance[metric],
-        textposition="outside"
-    ))
-
-    fig = chart_style(fig, 450)
-
-    st.plotly_chart(
-        fig,
-        use_container_width=True
-    )
-
-    st.download_button(
-        "Export Analytics",
-        performance.to_csv(index=False),
-        "captrace_analytics.csv",
-        "text/csv"
-    )
-
-# =====================================================
-# CPS INTEGRATION
-# =====================================================
-
-elif menu == "CPS Integration":
-
-    section("SYSTEM ARCHITECTURE", "Cyber-Physical System Integration")
-
-    stages = [
-        (
-            "01",
-            "CONNECTION",
-            "UAV, Smart Ajir, and restoration capsule connectivity."
-        ),
-        (
-            "02",
-            "CONVERSION",
-            "Environmental data acquisition and transformation."
-        ),
-        (
-            "03",
-            "CYBER",
-            "Digital data integration and traceability."
-        ),
-        (
-            "04",
-            "COGNITION",
-            "Restoration intelligence and decision support."
-        ),
-        (
-            "05",
-            "CONFIGURATION",
-            "Adaptive restoration planning and management."
-        )
-    ]
-
-    for number, title, description in stages:
-        tech_card(number, title, description)
-
-# =====================================================
-# JAGA MANGROVE
-# =====================================================
-
-elif menu == "Jaga Mangrove":
-
-    section("MARITIME ECOTOURISM", "Jaga Mangrove Experience")
-
-    tabs = st.tabs([
-        "Ecotourism",
-        "Community Business",
-        "Digital Education",
-        "Conservation"
-    ])
-
+elif page=='Jaga Mangrove':
+    section('Jaga Mangrove | Maritime Ecotourism','Integrating conservation, community enterprise, technology and coastal culture.')
+    tabs=st.tabs(['Experience builder','Community business','Interpretation','Conservation'])
     with tabs[0]:
-        tech_card(
-            "01",
-            "Mangrove Discovery",
-            "Guided ecological exploration and coastal interpretation."
-        )
-
+        activity=st.multiselect('Choose activities',['Mangrove interpretation walk','Capsule traceability discovery','Smart Ajir learning station','Local coastal culinary experience','Community restoration workshop'],default=['Mangrove interpretation walk','Smart Ajir learning station'])
+        people=st.number_input('Participants',1,50,10)
+        duration=st.slider('Duration (hours)',1,8,3)
+        st.metric('Selected activities',len(activity));st.metric('Participant-hours',people*duration)
+        st.dataframe(pd.DataFrame({'Selected experience':activity}),hide_index=True,use_container_width=True)
     with tabs[1]:
-        tech_card(
-            "02",
-            "Community Business Tourism",
-            "Community-led tourism enterprises and local value creation."
-        )
-
+        for title,desc in [('Local guides','Community-managed ecological guiding and interpretation.'),('Microenterprise','Local food, handicrafts and responsible visitor services.'),('Community reinvestment','Transparent allocation for community activities and conservation support.')]:card(title,desc,'COMMUNITY BUSINESS')
     with tabs[2]:
-        tech_card(
-            "03",
-            "Digital Interpretation",
-            "Interactive education integrating mangrove ecology and CAPTRACE."
-        )
-
+        topic=st.selectbox('Learning module',['Mangrove ecology','UAV and restoration capsules','Smart Ajir environmental monitoring','CPS 5C traceability'])
+        card(topic,'Use this module as an interactive educational station during guided maritime ecotourism experiences.','DIGITAL INTERPRETATION')
     with tabs[3]:
-        tech_card(
-            "04",
-            "Participatory Restoration",
-            "Community participation in mangrove restoration and stewardship."
-        )
-
-# =====================================================
-# FOOTER
-# =====================================================
+        for title,desc in [('Citizen monitoring','Community participation in observation and ecological reporting.'),('Restoration stewardship','Joint maintenance and follow-up monitoring of restoration areas.'),('Cultural interpretation','Connect local coastal livelihoods and cultural narratives with conservation education.')]:card(title,desc,'CONSERVATION')
 
 st.divider()
-
-with st.expander("Data Sources & Methodology"):
-    st.caption(
-        "Dashboard indicators and mapped device locations currently "
-        "use illustrative datasets. Live monitoring requires "
-        "integration with field devices and validated observations."
-    )
-
-st.markdown("""
-<div style="
-    text-align:center;
-    padding:20px;
-    color:#6C8988;
-    font-size:11px;
-    letter-spacing:1px;
-">
-    CAPTRACE | CONSERVATION INTELLIGENCE SYSTEM
-    <br>
-    SAYUNG COASTAL RESTORATION INITIATIVE
-</div>
-""", unsafe_allow_html=True)
+with st.expander('Data provenance and methodology'):
+    st.write('CAPTRACE interface demonstration. Sensor readings, capsule registries, performance trends, markers and zone circles are generated illustrative records. The map baselayers themselves use real-world OpenStreetMap or Esri geographic tiles. Replace demonstration data with validated field observations for operational use.')
+st.caption('CAPTRACE  |  SAYUNG COASTAL INTELLIGENCE  |  UAV · CAPSULE · SMART AJIR · CPS')
