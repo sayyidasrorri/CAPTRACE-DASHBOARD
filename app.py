@@ -1,4 +1,7 @@
 import base64
+from PIL import Image, ImageEnhance, ImageOps
+from io import BytesIO
+import math
 from pathlib import Path
 import numpy as np
 import pandas as pd
@@ -11,6 +14,7 @@ from streamlit_folium import st_folium
 st.set_page_config(page_title='CAPTRACE | Digital Ecosystem', layout='wide', initial_sidebar_state='expanded')
 ROOT = Path(__file__).resolve().parent
 LOGO = ROOT / 'captrace_logo.png'
+ASSETS = ROOT / 'captrace_assets'
 EMERALD='#08A88A'; CYAN='#09C8DD'; INK='#092C37'; GOLD='#E5B85C'
 
 st.markdown('''<style>
@@ -139,7 +143,7 @@ def real_map(layers=None,basemap='OpenStreetMap',height=520):
     folium.LayerControl(collapsed=False).add_to(m)
     st_folium(m,height=height,width=None,returned_objects=[],key=f'map_{st.session_state.page}_{basemap}_{"_".join(layers)}')
 
-PAGES=['Command Center','UAV Intelligence','Capsule Tracking','Smart Ajir Network','Geospatial Explorer','Restoration Analysis','Conservation Analytics','CPS Integration','Jaga Mangrove']
+PAGES=['Command Center','Drone Camera Studio','Aerial Image Lab','UAV Intelligence','Mission Replay','Capsule Tracking','Smart Ajir Network','Geospatial Explorer','Coastal Risk Monitor','Restoration Analysis','Species Atlas','Conservation Analytics','CPS Integration','Operations Log','Report Generator','Jaga Mangrove']
 with st.sidebar:
     if LOGO.exists(): st.image(str(LOGO),use_container_width=True)
     else: st.markdown('## CAPTRACE')
@@ -148,6 +152,7 @@ with st.sidebar:
     st.divider()
     zone=st.selectbox('OPERATIONAL FOCUS',['All zones','Z1 | Coastal','Z2 | Transition','Z3 | Inland'])
     st.caption('SAYUNG · DEMAK · CENTRAL JAVA')
+    st.caption('16 INTELLIGENCE MODULES')
 
 st.markdown(f'''<div class="hero"><div class="scanline"></div><div class="orbitlabel">EARTH<br>OBSERVATION</div><div class="eyebrow"><span class="pulse"></span>CAPTRACE / DIGITAL ECOSYSTEM</div><div class="title">{page.upper()}</div><div class="sub">Capsule-Based Traceability System · Mangrove restoration, geospatial intelligence and community-driven maritime ecotourism</div><div class="tags"><span>COASTAL INTELLIGENCE</span><span>CYBER-PHYSICAL SYSTEM</span><span>SAYUNG, DEMAK</span></div></div>''',unsafe_allow_html=True)
 
@@ -157,6 +162,166 @@ st.markdown('''<div class="mission-strip">
 <div class="mission-chip"><b>PLATFORM MODULES</b><span>UAV / CAPSULE / IOT / CPS</span></div>
 <div class="mission-chip"><b>DATA WORKSPACE</b><span>EXPLORATION & ANALYTICS</span></div>
 </div>''',unsafe_allow_html=True)
+
+
+# ================================================================
+# CAPTRACE 8.0 — VISUAL OBSERVATION AND OPERATIONS EXTENSIONS
+# ================================================================
+def aerial_frame(index=1):
+    path=ASSETS/f'aerial_scene_{index}.jpg'
+    if path.exists(): return Image.open(path).convert('RGB')
+    return Image.new('RGB',(1200,675),'#175c56')
+
+def overlay_camera(img,frame=0,mode='RGB',grid=True):
+    im=img.copy().convert('RGB')
+    if mode=='Thermal palette':
+        from PIL import ImageColor
+        gray=ImageOps.grayscale(im)
+        im=ImageOps.colorize(gray,black='#081d39',mid='#fa7d36',white='#ffe7a3')
+    elif mode=='Vegetation contrast':
+        im=ImageEnhance.Color(im).enhance(2.1)
+        im=ImageEnhance.Contrast(im).enhance(1.35)
+    from PIL import ImageDraw,ImageFont,ImageFilter
+    d=ImageDraw.Draw(im,'RGBA'); w,h=im.size
+    d.rectangle((0,0,w,60),fill=(4,25,35,195));d.rectangle((0,h-57,w,h),fill=(4,25,35,195))
+    d.text((23,18),f'CAPTRACE / UAV-01   CAM-A   {mode.upper()}',fill=(230,255,250,255))
+    d.text((w-255,18),f'FRAME {frame:04d} / VISUAL',fill=(225,255,248,255))
+    d.text((23,h-38),'SAYUNG  /  AERIAL OBSERVATION WORKSPACE',fill=(225,255,248,255))
+    d.text((w-230,h-38),'REPLAY / NOT LIVE',fill=(255,213,135,255))
+    if grid:
+        for x in (w//3,2*w//3):d.line((x,60,x,h-57),fill=(210,255,242,75),width=2)
+        for y in (h//3,2*h//3):d.line((0,y,w,y),fill=(210,255,242,75),width=2)
+        cx,cy=w//2,h//2;d.ellipse((cx-32,cy-32,cx+32,cy+32),outline=(223,255,246,190),width=3)
+        d.line((cx-55,cy,cx+55,cy),fill=(223,255,246,190),width=2)
+        d.line((cx,cy-55,cx,cy+55),fill=(223,255,246,190),width=2)
+    return im
+
+def downloadable_image(im,name):
+    b=BytesIO();im.save(b,format='PNG');st.download_button('Download camera frame (PNG)',b.getvalue(),name,'image/png')
+
+if page=='Drone Camera Studio':
+    section('Aerial observation / Camera station','UAV Visual Intelligence Studio')
+    st.markdown('<div class="signal-card"><strong>CAMERA CONTROL SURFACE</strong><small>Interactive camera-style visualization with optical modes, grid overlays, frame selection and export. Imagery in the gallery is computer-generated, not a live drone feed.</small></div>',unsafe_allow_html=True)
+    a,b,c,d=st.columns([1.2,1.2,1.2,1])
+    scene=a.selectbox('Observation scene',['Coastal transect','Mangrove canopy','Estuary transition'])
+    mode=b.selectbox('Camera visualization',['RGB','Vegetation contrast','Thermal palette'])
+    zoom=c.slider('Digital zoom',1.0,2.5,1.0,.1)
+    grid=d.toggle('Camera reticle',value=True)
+    frame=st.slider('Replay frame',0,120,38)
+    img=aerial_frame(['Coastal transect','Mangrove canopy','Estuary transition'].index(scene)+1)
+    if zoom>1:
+        w,h=img.size;nw=int(w/zoom);nh=int(h/zoom);cx=int(w/2+math.sin(frame/13)*45);cy=int(h/2+math.cos(frame/17)*25)
+        x=max(0,min(w-nw,cx-nw//2));y=max(0,min(h-nh,cy-nh//2))
+        img=img.crop((x,y,x+nw,y+nh)).resize((w,h))
+    img=overlay_camera(img,frame,mode,grid)
+    st.image(img,use_container_width=True)
+    m1,m2,m3,m4=st.columns(4)
+    m1.metric('MISSION','UAV-01');m2.metric('ALTITUDE SETPOINT','65 m');m3.metric('CAMERA MODE',mode);m4.metric('REPLAY FRAME',f'{frame:03d}')
+    downloadable_image(img,f'captrace_camera_{frame:03d}.png')
+    section('Optical payload','Camera sensor specification')
+    st.dataframe(pd.DataFrame({'Payload':['Visual RGB','Multispectral','Thermal','GNSS/IMU'], 'Use':['Habitat imagery','Vegetation-index mapping','Surface temperature screening','Georeferencing and orientation'], 'Availability':['Visual mock-up','Requires calibrated imagery','Palette preview only','Requires actual telemetry']}),hide_index=True,use_container_width=True)
+
+elif page=='Aerial Image Lab':
+    section('Computer vision / Image processing','Aerial Imagery Analysis Lab')
+    uploaded=st.file_uploader('Upload your aerial photo (JPG/PNG)',type=['jpg','jpeg','png'])
+    a,b=st.columns([1,1])
+    with a:
+        image=aerial_frame(2) if uploaded is None else Image.open(uploaded).convert('RGB')
+        st.image(image,caption='Input image' if uploaded else 'Generated sample aerial visualization',use_container_width=True)
+    with b:
+        method=st.selectbox('Visualization method',['RGB contrast','Green channel enhancement','Grayscale edge preview','False-color style'])
+        strength=st.slider('Enhancement strength',1.0,3.0,1.5,.1)
+        if method=='RGB contrast':out=ImageEnhance.Contrast(image).enhance(strength)
+        elif method=='Green channel enhancement':
+            arr=np.array(image).astype(float);arr[:,:,1]=np.clip(arr[:,:,1]*strength,0,255);out=Image.fromarray(arr.astype('uint8'))
+        elif method=='Grayscale edge preview':out=image.convert('L').filter(ImageFilter.FIND_EDGES).convert('RGB')
+        else:
+            gray=ImageOps.grayscale(image);out=ImageOps.colorize(gray,'#0a3257','#4de0b2')
+        st.image(out,caption='Processed visual preview',use_container_width=True)
+    downloadable_image(out,'captrace_image_analysis.png')
+    section('Interpretation','Image interpretation guide')
+    panel('Scientific interpretation','RGB processing and false-color styling are visual enhancements only. True NDVI requires calibrated near-infrared and red bands; thermal measurement requires an actual thermal sensor.')
+    x,y,z=st.columns(3)
+    x.metric('IMAGE WIDTH',f'{image.width} px');y.metric('IMAGE HEIGHT',f'{image.height} px');z.metric('IMAGE TYPE','Uploaded' if uploaded else 'Generated')
+
+elif page=='Mission Replay':
+    section('Flight reconstruction','UAV Mission Replay & Telemetry')
+    progress=st.slider('Mission timeline (%)',0,100,42)
+    mission_type=st.selectbox('Replay scenario',['Coastal mapping','Capsule release','Environmental inspection'])
+    t=np.linspace(0,100,101);alt=70*np.sin(np.pi*np.minimum(t,100)/100)**.35
+    alt=np.maximum(0,alt)
+    fig=go.Figure();fig.add_trace(go.Scatter(x=t,y=alt,name='Altitude',line=dict(color=EMERALD,width=4),fill='tozeroy',fillcolor='rgba(8,168,138,.1)'))
+    fig.add_vline(x=progress,line_color=GOLD,line_dash='dash');fig.update_layout(xaxis_title='Mission completion (%)',yaxis_title='Altitude (m)')
+    st.plotly_chart(chart(fig,340),use_container_width=True)
+    a,b,c,d=st.columns(4);a.metric('MISSION PROGRESS',f'{progress}%');b.metric('ALTITUDE',f'{alt[progress]:.1f} m');c.metric('SIMULATED SPEED',f'{12+3*np.sin(progress/12):.1f} m/s');d.metric('MISSION TYPE',mission_type)
+    st.image(overlay_camera(aerial_frame(1+min(2,progress//34)),progress,'RGB',True),use_container_width=True)
+    panel('Flight replay','Telemetry curve and imagery are synchronized conceptual previews. No actual flight log, GNSS track or recorded video is connected.')
+
+elif page=='Coastal Risk Monitor':
+    section('Coastal intelligence','Shoreline & Habitat Risk Studio')
+    erosion=st.slider('Illustrative shoreline retreat (m/year)',0.0,15.0,4.5,.5)
+    exposure=st.select_slider('Wave exposure',['Low','Moderate','High'])
+    vegetation=st.slider('Protective vegetation cover (%)',0,100,48)
+    risk=min(100,round(erosion*4+{'Low':10,'Moderate':25,'High':40}[exposure]+(100-vegetation)*.3))
+    a,b=st.columns([1,2]);a.metric('SCENARIO RISK INDEX',f'{risk}/100');a.progress(risk/100)
+    fig=go.Figure(go.Indicator(mode='gauge+number',value=risk,gauge=dict(axis=dict(range=[0,100]),bar=dict(color='#d69b46'),steps=[dict(range=[0,35],color='#dcf6e9'),dict(range=[35,70],color='#fff0c9'),dict(range=[70,100],color='#f8d9d5')])))
+    b.plotly_chart(chart(fig,280),use_container_width=True)
+    section('Risk matrix','Planning priorities')
+    st.dataframe(pd.DataFrame({'Factor':['Shoreline retreat','Wave exposure','Vegetation cover','Tidal connectivity'],'Scenario input':[f'{erosion} m/year',exposure,f'{vegetation}%','Field verification needed'],'Planning response':['Monitor shoreline profiles','Assess wave energy','Protect suitable vegetation','Verify natural hydrology']}),hide_index=True,use_container_width=True)
+    panel('Scenario boundary','The risk index is a planning illustration, not a calibrated hazard forecast or a measured coastal erosion rate.')
+
+elif page=='Species Atlas':
+    section('Biodiversity intelligence','Mangrove Species Atlas')
+    species_info={
+        'Avicennia marina':('Api-api','Pioneer species; often tolerates saline coastal environments.','Inspect tidal elevation, substrate and local reference stands.'),
+        'Avicennia alba':('Api-api putih','Frequently associated with seaward intertidal mangrove settings.','Evaluate sediment stability and wave exposure.'),
+        'Rhizophora mucronata':('Bakau hitam','Prop-root mangrove often found in sheltered intertidal habitat.','Assess water exchange and muddy substrate.'),
+        'Rhizophora apiculata':('Bakau minyak','Mangrove associated with suitable sheltered tidal areas.','Verify inundation regime and substrate.'),
+        'Sonneratia alba':('Pidada','Often associated with tidal, sometimes seaward environments.','Assess inundation and sediment dynamics.')}
+    chosen=st.selectbox('Explore species',list(species_info));local,ecology,site=species_info[chosen]
+    a,b=st.columns([1,1.5])
+    with a:
+        st.markdown(f'<div class="panel"><h4>{chosen}</h4><p>Local name: {local}</p><p>{ecology}</p></div>',unsafe_allow_html=True)
+        st.info(site)
+    with b:
+        fig=go.Figure(go.Bar(x=['Hydrology','Substrate','Salinity','Wave exposure','Local availability'],y=[5,4,4,3,5],marker_color=[EMERALD,CYAN,EMERALD,GOLD,EMERALD]));fig.update_layout(yaxis_range=[0,6],title='Example site-assessment checklist weights')
+        st.plotly_chart(chart(fig,320),use_container_width=True)
+    st.caption('Chart weights are illustrative checklists, not measured species tolerance or suitability scores.')
+
+elif page=='Operations Log':
+    section('Mission operations','Operations & Event Registry')
+    if 'operation_events' not in st.session_state:
+        st.session_state.operation_events=[{'Time':'2026-11-18 09:00','Subsystem':'UAV','Event':'Mapping plan drafted','Priority':'Normal'},{'Time':'2026-11-18 10:15','Subsystem':'CPS','Event':'Architecture review','Priority':'Normal'}]
+    with st.form('event_form'):
+        x,y=st.columns(2);subsystem=x.selectbox('Subsystem',['UAV','Capsule','Smart Ajir','Geospatial','CPS','Community']);priority=y.selectbox('Priority',['Normal','Review','High'])
+        event=st.text_input('Event description',max_chars=120)
+        submitted=st.form_submit_button('Add event')
+    if submitted:
+        if event.strip():
+            from datetime import datetime
+            st.session_state.operation_events.insert(0,{'Time':datetime.now().strftime('%Y-%m-%d %H:%M'),'Subsystem':subsystem,'Event':event.strip(),'Priority':priority})
+            st.success('Event added to this browser session.')
+        else:st.warning('Enter an event description.')
+    logs=pd.DataFrame(st.session_state.operation_events)
+    st.dataframe(logs,hide_index=True,use_container_width=True)
+    st.download_button('Export operations log',logs.to_csv(index=False),'captrace_operations.csv','text/csv')
+    st.caption('Entries are local session notes, not authenticated system telemetry.')
+
+elif page=='Report Generator':
+    section('Reporting intelligence','Conservation Brief Generator')
+    title=st.text_input('Report title','CAPTRACE Conservation Intelligence Brief')
+    selected=st.multiselect('Include sections',['Overview','Sensors','Capsules','Restoration indicators','Recommendations'],default=['Overview','Sensors','Capsules','Restoration indicators'])
+    note=st.text_area('Executive note','Monitoring priorities: validate site conditions, sensor installations and restoration observations.')
+    lines=[title,'','Location: Sayung, Demak','Source: CAPTRACE interactive workspace','',note,'']
+    if 'Overview' in selected:lines+=['OVERVIEW','CAPTRACE integrates UAV, restoration capsules, Smart Ajir and CPS.','']
+    if 'Sensors' in selected:lines+=['SENSOR REGISTRY',f'Illustrative sensor records: {len(sensors)}','']
+    if 'Capsules' in selected:lines+=['CAPSULE REGISTRY',f'Illustrative capsule records: {len(capsules)}','']
+    if 'Restoration indicators' in selected:lines+=['RESTORATION INDICATORS',f'Illustrative index at end of series: {trend["Health index"].iloc[-1]:.1f}','']
+    if 'Recommendations' in selected:lines+=['RECOMMENDATIONS','Verify sensor calibration, coordinates, imagery and monitoring methodology before operational reporting.','']
+    lines+=['DATA STATUS','This report is based on illustrative dashboard datasets unless replaced by verified field observations.']
+    report='\n'.join(lines)
+    st.text_area('Report preview',report,height=320)
+    st.download_button('Download report (TXT)',report,'captrace_report.txt','text/plain')
 
 if page=='Command Center':
     section('01 / Ecosystem overview','Environmental Intelligence Hub')
@@ -319,4 +484,4 @@ elif page=='Jaga Mangrove':
 st.divider()
 with st.expander('Data sources & methodology'):
     st.write('Basemap: OpenStreetMap / CartoDB / Esri World Imagery. Sensor readings, capsule records, performance series, map overlays and financial estimates are illustrative interface datasets. Replace with verified field data before operational use.')
-st.caption('CAPTRACE 7.0  /  CAPSULE-BASED TRACEABILITY SYSTEM  /  SAYUNG COASTAL INTELLIGENCE')
+st.caption('CAPTRACE 8.0  /  CAPSULE-BASED TRACEABILITY SYSTEM  /  SAYUNG COASTAL INTELLIGENCE')
