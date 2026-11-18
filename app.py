@@ -106,6 +106,33 @@ h1,h2,h3,.hero .title,.panel h4,.flow .node{font-family:'Oxanium',sans-serif!imp
 @keyframes shimmer{from{background-position:200% 0}to{background-position:-200% 0}}
 .mission-chip{background:linear-gradient(110deg,#fff 25%,#e8fffb 50%,#fff 75%);background-size:200% 100%;animation:shimmer 13s linear infinite}
 @media(prefers-reduced-motion:reduce){.mission-chip{animation:none}}
+
+/* CAPTRACE 10 — animated command-grid environment */
+@import url('https://fonts.googleapis.com/css2?family=Oxanium:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap');
+[data-testid="stAppViewContainer"]{position:relative;isolation:isolate;background:linear-gradient(130deg,#f2fbfc,#e9f5f6 45%,#f6fbfd)!important}
+[data-testid="stAppViewContainer"]::before{
+ content:"";position:fixed;inset:0;pointer-events:none;z-index:-1;
+ background-image:linear-gradient(90deg,rgba(0,139,148,.12) 1px,transparent 1px),linear-gradient(rgba(0,139,148,.12) 1px,transparent 1px);
+ background-size:62px 62px;animation:cap-grid-drift 24s linear infinite;
+ mask-image:linear-gradient(110deg,#0009,#0003 75%);
+}
+[data-testid="stAppViewContainer"]::after{
+ content:"";position:fixed;inset:-30%;pointer-events:none;z-index:-1;
+ background:radial-gradient(ellipse at 22% 32%,rgba(18,204,184,.14),transparent 32%),radial-gradient(ellipse at 78% 65%,rgba(12,127,203,.12),transparent 34%);
+ animation:cap-aurora 18s ease-in-out infinite alternate;
+}
+@keyframes cap-grid-drift{to{background-position:124px 62px}}
+@keyframes cap-aurora{to{transform:translate(7%, -5%) rotate(5deg)}}
+[data-testid="stSidebar"]{background:linear-gradient(155deg,#041d31,#073f4c 50%,#07534b)!important}
+[data-testid="stSidebar"] [data-testid="stRadio"]{border:1px solid #7fffe21f;border-radius:13px;padding:7px;margin:7px 0 15px;background:#ffffff08}
+[data-testid="stSidebar"] [role="radiogroup"] label{padding:10px 11px!important;margin:3px 0;border-radius:10px;transition:background .25s,transform .25s}
+[data-testid="stSidebar"] [role="radiogroup"] label:hover{background:#20cbb52c;transform:translateX(3px)}
+.nav-caption{font-family:Oxanium,sans-serif;color:#7cf7df;font-size:11px;font-weight:800;letter-spacing:2px;margin:15px 0 8px}
+.hero{background:linear-gradient(110deg,#031c32,#06505d 55%,#087b79)!important}
+.hero::before{animation:orbit 9s linear infinite alternate!important}
+[data-testid="stMetric"]{backdrop-filter:blur(10px);transition:transform .3s,box-shadow .3s!important}
+[data-testid="stMetric"]:hover{transform:translateY(-6px) scale(1.015);box-shadow:0 16px 40px #008f9b25}
+@media(prefers-reduced-motion:reduce){[data-testid="stAppViewContainer"]::before,[data-testid="stAppViewContainer"]::after,.hero::before{animation:none!important}}
 </style>''',unsafe_allow_html=True)
 
 @st.cache_data
@@ -165,15 +192,32 @@ def real_map(layers=None,basemap='OpenStreetMap',height=520):
     st_folium(m,height=height,width=None,returned_objects=[],key=f'map_{st.session_state.page}_{basemap}_{"_".join(layers)}')
 
 PAGES=['Command Center','Drone Camera Studio','Aerial Image Lab','UAV Intelligence','Mission Replay','Capsule Tracking','Smart Ajir Network','Geospatial Explorer','Coastal Risk Monitor','Restoration Analysis','Species Atlas','Conservation Analytics','CPS Integration','Operations Log','Report Generator','Jaga Mangrove']
+
+# Five primary groups; existing sixteen modules remain accessible.
+NAV_GROUPS = {
+    '01  MISSION CONTROL': ['Command Center', 'UAV Intelligence', 'Mission Replay', 'Operations Log'],
+    '02  DRONE & IMAGING': ['Drone Camera Studio', 'Aerial Image Lab', 'Geospatial Explorer'],
+    '03  RESTORATION NETWORK': ['Capsule Tracking', 'Smart Ajir Network', 'Restoration Analysis', 'Species Atlas'],
+    '04  EARTH INTELLIGENCE': ['Coastal Risk Monitor', 'Conservation Analytics', 'CPS Integration'],
+    '05  COMMUNITY & REPORTS': ['Jaga Mangrove', 'Report Generator'],
+}
+
 with st.sidebar:
-    if LOGO.exists(): st.image(str(LOGO),use_container_width=True)
-    else: st.markdown('## CAPTRACE')
+    if LOGO.exists():
+        st.image(str(LOGO), use_container_width=True)
+    else:
+        st.markdown('## CAPTRACE')
     st.markdown('<span class="pulse"></span><span style="font-size:11px;letter-spacing:2px">CONSERVATION INTELLIGENCE</span>',unsafe_allow_html=True)
-    page=st.radio('NAVIGATION',PAGES,label_visibility='collapsed',key='page')
+    st.markdown('<div class="nav-caption">PRIMARY SYSTEMS / 05</div>',unsafe_allow_html=True)
+    group = st.radio('MAIN SYSTEMS', list(NAV_GROUPS), label_visibility='collapsed', key='nav_group')
+    st.markdown('<div class="nav-caption">SELECT MODULE</div>',unsafe_allow_html=True)
+    page = st.radio('SUBMODULES', NAV_GROUPS[group], label_visibility='collapsed', key=f'nav_sub_{list(NAV_GROUPS).index(group)}')
+    # Preserve compatibility with all existing map and page functions.
+    st.session_state['page'] = page
     st.divider()
     zone=st.selectbox('OPERATIONAL FOCUS',['All zones','Z1 | Coastal','Z2 | Transition','Z3 | Inland'])
     st.caption('SAYUNG · DEMAK · CENTRAL JAVA')
-    st.caption('16 INTELLIGENCE MODULES')
+    st.caption('05 MAIN SYSTEMS  /  16 MODULES')
 
 st.markdown(f'''<div class="hero"><div class="scanline"></div><div class="orbitlabel">EARTH<br>OBSERVATION</div><div class="eyebrow"><span class="pulse"></span>CAPTRACE / DIGITAL ECOSYSTEM</div><div class="title">{page.upper()}</div><div class="sub">Capsule-Based Traceability System · Mangrove restoration, geospatial intelligence and community-driven maritime ecotourism</div><div class="tags"><span>COASTAL INTELLIGENCE</span><span>CYBER-PHYSICAL SYSTEM</span><span>SAYUNG, DEMAK</span></div></div>''',unsafe_allow_html=True)
 
