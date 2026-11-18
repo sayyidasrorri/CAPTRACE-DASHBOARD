@@ -1,5 +1,5 @@
 import base64
-from PIL import Image, ImageEnhance, ImageOps
+from PIL import Image, ImageEnhance, ImageOps, ImageDraw, ImageFont, ImageFilter
 from io import BytesIO
 import math
 from pathlib import Path
@@ -18,7 +18,7 @@ ASSETS = ROOT / 'captrace_assets'
 EMERALD='#08A88A'; CYAN='#09C8DD'; INK='#092C37'; GOLD='#E5B85C'
 
 st.markdown('''<style>
-@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800;900&family=Rajdhani:wght@500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Oxanium:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap');
 :root {color-scheme:light} html,body,[class*="css"],.stApp{font-family:'Manrope',sans-serif!important}
 .stApp{background:radial-gradient(ellipse at 90% 0%,#d6f9f5 0%,transparent 34%),radial-gradient(ellipse at 5% 65%,#e6f4ff 0%,transparent 40%),#f3f8fa;color:#123746}
 .stApp:before{content:'';position:fixed;inset:0;pointer-events:none;background-image:linear-gradient(#0b7f8410 1px,transparent 1px),linear-gradient(90deg,#0b7f8410 1px,transparent 1px);background-size:36px 36px;mask-image:linear-gradient(to bottom,#0007,transparent 80%)}
@@ -85,6 +85,27 @@ h1,h2,h3{font-family:'Sora',sans-serif!important;letter-spacing:.2px;color:#073b
 @keyframes scan{to{background-position:0 190px}}
 @media(prefers-reduced-motion:reduce){.hero .scanline,.hero .orbitlabel,.radar:before{animation:none!important}}
 @media(max-width:700px){.hero .orbitlabel{display:none}.mission-chip{min-width:130px}}
+
+/* CAPTRACE 9.0 / VISION INTERFACE */
+h1,h2,h3,.hero .title,.panel h4,.flow .node{font-family:'Oxanium',sans-serif!important}
+.hero{background:radial-gradient(circle at 84% 44%,#1bead044,transparent 29%),linear-gradient(113deg,#041e2f 0%,#064a56 49%,#087c7b 100%);border:1px solid #35f0d35c;box-shadow:0 20px 65px #003f4d35,inset 0 0 55px #00d6bd18}
+.hero .title{text-shadow:0 0 22px #2dffe84d;letter-spacing:1px}
+.hero:before{border:2px dashed #64ffdd55;box-shadow:0 0 0 30px #17e0c311,0 0 0 70px #13e2c40a,0 0 0 115px #0df8dc08}
+[data-testid="stMetric"]{background:linear-gradient(130deg,#ffffff,#e9fdfa);box-shadow:0 12px 35px #044f521a,inset 0 0 0 1px #ffffff}
+[data-testid="stMetricValue"]{font-family:'Oxanium',sans-serif!important;letter-spacing:1px}
+[data-testid="stSidebar"]{background:linear-gradient(165deg,#041b2c,#063c48 48%,#064e48);}
+[data-testid="stSidebar"] [role="radiogroup"] label{font-family:'Space Grotesk',sans-serif;font-size:13px;letter-spacing:.15px}
+[data-testid="stPlotlyChart"]{box-shadow:0 12px 36px #0a64621c;border:1px solid #a9dcd8}
+.signal-card{background:linear-gradient(135deg,#faffff,#eafff9);border:1px solid #a8e4d9;box-shadow:0 7px 24px #005b5d12}
+.vision-banner{padding:17px 22px;border-radius:14px;background:linear-gradient(105deg,#062d3d,#075b60);border:1px solid #25dfc58a;color:#eafffb;margin:8px 0 18px;position:relative;overflow:hidden}
+.vision-banner:after{content:'';position:absolute;right:0;top:0;width:36%;height:100%;background:repeating-linear-gradient(90deg,transparent 0 15px,#6bffe914 16px 17px);pointer-events:none}
+.vision-banner strong{font-family:Oxanium,sans-serif;font-size:19px;letter-spacing:1px;color:#b7ffed}
+.vision-banner small{display:block;color:#c1e9e5;margin-top:5px;font-size:12px;line-height:1.6}
+.vision-readout{display:flex;flex-wrap:wrap;gap:9px;margin:10px 0 18px}
+.vision-readout span{background:#073b48;color:#a9fff1;border:1px solid #16bda6;border-radius:8px;padding:8px 13px;font:700 12px Oxanium,sans-serif;letter-spacing:1px}
+@keyframes shimmer{from{background-position:200% 0}to{background-position:-200% 0}}
+.mission-chip{background:linear-gradient(110deg,#fff 25%,#e8fffb 50%,#fff 75%);background-size:200% 100%;animation:shimmer 13s linear infinite}
+@media(prefers-reduced-motion:reduce){.mission-chip{animation:none}}
 </style>''',unsafe_allow_html=True)
 
 @st.cache_data
@@ -173,27 +194,65 @@ def aerial_frame(index=1):
     return Image.new('RGB',(1200,675),'#175c56')
 
 def overlay_camera(img,frame=0,mode='RGB',grid=True):
-    im=img.copy().convert('RGB')
+    """Compose a high-contrast instrument HUD over illustrative or user-supplied imagery."""
+    im=img.copy().convert('RGB').resize((1280,720))
     if mode=='Thermal palette':
-        from PIL import ImageColor
-        gray=ImageOps.grayscale(im)
-        im=ImageOps.colorize(gray,black='#081d39',mid='#fa7d36',white='#ffe7a3')
+        im=ImageOps.colorize(ImageOps.grayscale(im),black='#041a39',mid='#ed6d37',white='#fff3b1')
     elif mode=='Vegetation contrast':
-        im=ImageEnhance.Color(im).enhance(2.1)
-        im=ImageEnhance.Contrast(im).enhance(1.35)
-    from PIL import ImageDraw,ImageFont,ImageFilter
-    d=ImageDraw.Draw(im,'RGBA'); w,h=im.size
-    d.rectangle((0,0,w,60),fill=(4,25,35,195));d.rectangle((0,h-57,w,h),fill=(4,25,35,195))
-    d.text((23,18),f'CAPTRACE / UAV-01   CAM-A   {mode.upper()}',fill=(230,255,250,255))
-    d.text((w-255,18),f'FRAME {frame:04d} / VISUAL',fill=(225,255,248,255))
-    d.text((23,h-38),'SAYUNG  /  AERIAL OBSERVATION WORKSPACE',fill=(225,255,248,255))
-    d.text((w-230,h-38),'REPLAY / NOT LIVE',fill=(255,213,135,255))
+        im=ImageEnhance.Color(im).enhance(1.85)
+        im=ImageEnhance.Contrast(im).enhance(1.28)
+    w,h=im.size
+    d=ImageDraw.Draw(im,'RGBA')
+    font_dir=Path('/usr/share/fonts/truetype/dejavu')
+    def font(size,bold=False):
+        p=font_dir/('DejaVuSansMono-Bold.ttf' if bold else 'DejaVuSansMono.ttf')
+        try:return ImageFont.truetype(str(p),size)
+        except:return ImageFont.load_default()
+    sm=font(16);md=font(21,True);lg=font(31,True)
+    mint=(102,255,220,240);white=(238,255,250,245);amber=(255,205,111,245)
+    # Gradient edge treatment, dark glass command bars and film grain style lines
+    d.rectangle((0,0,w,89),fill=(3,22,36,218))
+    d.rectangle((0,h-92,w,h),fill=(3,22,36,224))
+    d.rectangle((0,89,9,h-92),fill=(0,225,188,175))
+    d.rectangle((w-9,89,w,h-92),fill=(0,225,188,175))
+    for y in range(102,h-100,42):d.line((15,y,w-15,y),fill=(14,43,49,38),width=1)
+    for x in range(28,w-28,70):d.line((x,95,x,h-98),fill=(14,43,49,26),width=1)
+    d.text((28,18),'CAPTRACE  /  EARTH OBSERVATION',font=md,fill=white)
+    d.text((28,51),'UAV-01  |  VISUAL INTELLIGENCE ARRAY',font=sm,fill=mint)
+    d.text((w-335,18),f'FRAME {frame:04d}  /  {mode.upper()}',font=sm,fill=mint)
+    d.text((w-335,52),'REPLAY FEED  /  NO LIVE LINK',font=sm,fill=amber)
+    d.text((28,h-76),'6.940 S  /  110.480 E',font=md,fill=white)
+    d.text((28,h-41),'SAYUNG COASTAL OBSERVATION',font=sm,fill=mint)
+    d.text((w-355,h-76),'ALT 065 M   HDG 082 DEG',font=md,fill=white)
+    d.text((w-355,h-41),'OPTICAL PAYLOAD  /  SIMULATED',font=sm,fill=amber)
+    # targeting reticle with four articulated corners and circular acquisition zone
+    cx=int(w/2+22*math.sin(frame/18));cy=int(h/2+14*math.cos(frame/20))
     if grid:
-        for x in (w//3,2*w//3):d.line((x,60,x,h-57),fill=(210,255,242,75),width=2)
-        for y in (h//3,2*h//3):d.line((0,y,w,y),fill=(210,255,242,75),width=2)
-        cx,cy=w//2,h//2;d.ellipse((cx-32,cy-32,cx+32,cy+32),outline=(223,255,246,190),width=3)
-        d.line((cx-55,cy,cx+55,cy),fill=(223,255,246,190),width=2)
-        d.line((cx,cy-55,cx,cy+55),fill=(223,255,246,190),width=2)
+        for x in (w//3,2*w//3):d.line((x,95,x,h-96),fill=(162,255,226,74),width=2)
+        for y in (h//3,2*h//3):d.line((13,y,w-13,y),fill=(162,255,226,74),width=2)
+        d.ellipse((cx-84,cy-84,cx+84,cy+84),outline=mint,width=3)
+        d.ellipse((cx-11,cy-11,cx+11,cy+11),outline=white,width=3)
+        d.line((cx-126,cy,cx-28,cy),fill=mint,width=3)
+        d.line((cx+28,cy,cx+126,cy),fill=mint,width=3)
+        d.line((cx,cy-122,cx,cy-30),fill=mint,width=3)
+        d.line((cx,cy+30,cx,cy+122),fill=mint,width=3)
+        for x,y,dx,dy in [(52,126,1,1),(w-52,126,-1,1),(52,h-125,1,-1),(w-52,h-125,-1,-1)]:
+            d.line((x,y,x+dx*60,y),fill=mint,width=5)
+            d.line((x,y,x,y+dy*55),fill=mint,width=5)
+    # diagnostic ruler, histogram and radar inset
+    for k in range(12):
+        y=155+k*30
+        d.line((w-47,y,w-47-(22 if k%3==0 else 11),y),fill=mint,width=2)
+    for k in range(24):
+        bar=int(12+35*abs(math.sin(k*.41+frame*.035)))
+        x=33+k*13
+        d.rectangle((x,h-117-bar,x+7,h-117),fill=(54,235,196,160))
+    rx,ry=110,174
+    d.ellipse((rx-48,ry-48,rx+48,ry+48),outline=mint,width=2)
+    d.ellipse((rx-24,ry-24,rx+24,ry+24),outline=(102,255,220,125),width=2)
+    a=frame*.08
+    d.line((rx,ry,rx+int(46*math.cos(a)),ry+int(46*math.sin(a))),fill=mint,width=3)
+    d.ellipse((rx+14,ry-19,rx+19,ry-14),fill=amber)
     return im
 
 def downloadable_image(im,name):
@@ -201,7 +260,7 @@ def downloadable_image(im,name):
 
 if page=='Drone Camera Studio':
     section('Aerial observation / Camera station','UAV Visual Intelligence Studio')
-    st.markdown('<div class="signal-card"><strong>CAMERA CONTROL SURFACE</strong><small>Interactive camera-style visualization with optical modes, grid overlays, frame selection and export. Imagery in the gallery is computer-generated, not a live drone feed.</small></div>',unsafe_allow_html=True)
+    st.markdown('<div class="vision-banner"><strong>OPTICAL COMMAND / MULTI-SPECTRAL VIEWER</strong><small>Instrument overlay, target reticle, optical modes and replay timeline. Built-in scenes are generated visual references; upload real imagery in Aerial Image Lab.</small></div>',unsafe_allow_html=True)
     a,b,c,d=st.columns([1.2,1.2,1.2,1])
     scene=a.selectbox('Observation scene',['Coastal transect','Mangrove canopy','Estuary transition'])
     mode=b.selectbox('Camera visualization',['RGB','Vegetation contrast','Thermal palette'])
@@ -214,6 +273,7 @@ if page=='Drone Camera Studio':
         x=max(0,min(w-nw,cx-nw//2));y=max(0,min(h-nh,cy-nh//2))
         img=img.crop((x,y,x+nw,y+nh)).resize((w,h))
     img=overlay_camera(img,frame,mode,grid)
+    st.markdown('<div class="vision-readout"><span>OPTICAL ARRAY / CAM-A</span><span>ACQUISITION HUD</span><span>FRAME RECONSTRUCTION</span><span>GEO REFERENCE: SAYUNG</span></div>',unsafe_allow_html=True)
     st.image(img,use_container_width=True)
     m1,m2,m3,m4=st.columns(4)
     m1.metric('MISSION','UAV-01');m2.metric('ALTITUDE SETPOINT','65 m');m3.metric('CAMERA MODE',mode);m4.metric('REPLAY FRAME',f'{frame:03d}')
@@ -227,7 +287,7 @@ elif page=='Aerial Image Lab':
     a,b=st.columns([1,1])
     with a:
         image=aerial_frame(2) if uploaded is None else Image.open(uploaded).convert('RGB')
-        st.image(image,caption='Input image' if uploaded else 'Generated sample aerial visualization',use_container_width=True)
+        st.image(overlay_camera(image,16,'RGB',True),caption='Source imagery with acquisition interface',use_container_width=True)
     with b:
         method=st.selectbox('Visualization method',['RGB contrast','Green channel enhancement','Grayscale edge preview','False-color style'])
         strength=st.slider('Enhancement strength',1.0,3.0,1.5,.1)
@@ -237,7 +297,7 @@ elif page=='Aerial Image Lab':
         elif method=='Grayscale edge preview':out=image.convert('L').filter(ImageFilter.FIND_EDGES).convert('RGB')
         else:
             gray=ImageOps.grayscale(image);out=ImageOps.colorize(gray,'#0a3257','#4de0b2')
-        st.image(out,caption='Processed visual preview',use_container_width=True)
+        st.image(overlay_camera(out,48,'Vegetation contrast' if method=='Green channel enhancement' else 'RGB',True),caption='Enhanced image with instrument interface',use_container_width=True)
     downloadable_image(out,'captrace_image_analysis.png')
     section('Interpretation','Image interpretation guide')
     panel('Scientific interpretation','RGB processing and false-color styling are visual enhancements only. True NDVI requires calibrated near-infrared and red bands; thermal measurement requires an actual thermal sensor.')
@@ -254,6 +314,7 @@ elif page=='Mission Replay':
     fig.add_vline(x=progress,line_color=GOLD,line_dash='dash');fig.update_layout(xaxis_title='Mission completion (%)',yaxis_title='Altitude (m)')
     st.plotly_chart(chart(fig,340),use_container_width=True)
     a,b,c,d=st.columns(4);a.metric('MISSION PROGRESS',f'{progress}%');b.metric('ALTITUDE',f'{alt[progress]:.1f} m');c.metric('SIMULATED SPEED',f'{12+3*np.sin(progress/12):.1f} m/s');d.metric('MISSION TYPE',mission_type)
+    st.markdown('<div class="vision-banner"><strong>FLIGHT RECONSTRUCTION / OPTICAL TELEMETRY</strong><small>Replay frames follow the selected mission progress. This is an interactive visualization, not a live video stream.</small></div>',unsafe_allow_html=True)
     st.image(overlay_camera(aerial_frame(1+min(2,progress//34)),progress,'RGB',True),use_container_width=True)
     panel('Flight replay','Telemetry curve and imagery are synchronized conceptual previews. No actual flight log, GNSS track or recorded video is connected.')
 
