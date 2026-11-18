@@ -11,13 +11,39 @@ import streamlit as st
 import folium
 from streamlit_folium import st_folium
 
-st.set_page_config(page_title='CAPTRACE | Digital Ecosystem', layout='wide', initial_sidebar_state='expanded')
+st.set_page_config(page_title='CAPTRACE 12 | Quantum Command', layout='wide', initial_sidebar_state='expanded')
 ROOT = Path(__file__).resolve().parent
 LOGO = ROOT / 'captrace_logo.png'
 ASSETS = ROOT / 'captrace_assets'
 EMERALD='#08A88A'; CYAN='#09C8DD'; INK='#092C37'; GOLD='#E5B85C'
 
 st.markdown('''<style>
+
+/* CAPTRACE 12: kinetic environmental command interface */
+.stApp{background:radial-gradient(ellipse at 80% 0%,#c8f6ef 0%,transparent 35%),radial-gradient(ellipse at 10% 70%,#d9ebff 0%,transparent 42%),#f1f8fa!important}
+.stApp::before{animation:ct-grid 24s linear infinite!important;opacity:.8}
+@keyframes ct-grid{from{background-position:0 0,0 0}to{background-position:0 90px,90px 0}}
+[data-testid="stSidebar"]{background:linear-gradient(135deg,#061d2e,#064a4c,#062d45,#061d2e)!important;background-size:300% 300%!important;animation:ct-aurora 16s ease-in-out infinite!important}
+@keyframes ct-aurora{0%,100%{background-position:0 40%}50%{background-position:100% 60%}}
+[data-testid="stSidebar"] [data-testid="stRadio"] label{position:relative;border:1px solid #5cddcc18!important;border-radius:9px!important;background:#d5fff806!important;transition:transform .25s,background .25s,border-color .25s!important}
+[data-testid="stSidebar"] [data-testid="stRadio"] label:hover{transform:translateX(5px);background:#23e2c21c!important;border-color:#4cf5df8c!important}
+[data-testid="stSidebar"] [data-testid="stRadio"] label:has(input:checked){background:linear-gradient(90deg,#00e1c43b,#04adcf0a)!important;border-color:#3df2d1a1!important;box-shadow:inset 3px 0 #38f5d4,0 0 16px #00cdbd20!important}
+[data-testid="stSidebar"] [data-testid="stRadio"] [data-testid="stMarkdownContainer"] p{font-family:'Oxanium',sans-serif!important;font-size:13px!important;font-weight:700!important;letter-spacing:.45px!important}
+[data-testid="stSidebar"] [data-testid="stRadio"] [role="radiogroup"]>label>div:first-child{display:none!important}
+.ct-glass{border:1px solid #4bdeca73;border-radius:17px;background:linear-gradient(130deg,#062d42,#075d61);color:#d9fff7;padding:18px 22px;box-shadow:0 20px 50px #003c4b25;position:relative;overflow:hidden;margin:12px 0 22px}
+.ct-glass:before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0 42px,#8bfff40a 43px 44px);animation:ct-grid 12s linear infinite;pointer-events:none}
+.ct-glass h3{color:#e8fff9!important;font-family:'Oxanium',sans-serif!important;letter-spacing:1px}
+.ct-glass p,.ct-glass small{color:#b9eae4!important}
+.ct-orbit{width:100%;height:180px;display:block}
+.ct-orbit .ct-ring{transform-origin:50% 50%;animation:ct-spin 24s linear infinite}
+.ct-orbit .ct-ring.reverse{animation-direction:reverse;animation-duration:17s}
+@keyframes ct-spin{to{transform:rotate(360deg)}}
+.ct-orbit .ct-pulse{animation:ct-pulse 2s ease-in-out infinite}
+@keyframes ct-pulse{50%{opacity:.22;r:14}}
+.ct-live{display:inline-block;width:8px;height:8px;border-radius:50%;background:#37f8d0;box-shadow:0 0 14px #36f8d0;animation:ct-blink 1.7s infinite}
+@keyframes ct-blink{50%{opacity:.3}}
+@media(prefers-reduced-motion:reduce){.stApp::before,[data-testid="stSidebar"],.ct-orbit *, .ct-live{animation:none!important}}
+
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Oxanium:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap');
 :root {color-scheme:light} html,body,[class*="css"],.stApp{font-family:'Manrope',sans-serif!important}
 .stApp{background:radial-gradient(ellipse at 90% 0%,#d6f9f5 0%,transparent 34%),radial-gradient(ellipse at 5% 65%,#e6f4ff 0%,transparent 40%),#f3f8fa;color:#123746}
@@ -135,6 +161,66 @@ h1,h2,h3,.hero .title,.panel h4,.flow .node{font-family:'Oxanium',sans-serif!imp
 @media(prefers-reduced-motion:reduce){[data-testid="stAppViewContainer"]::before,[data-testid="stAppViewContainer"]::after,.hero::before{animation:none!important}}
 </style>''',unsafe_allow_html=True)
 
+# CAPTRACE 11 — KINETIC NAVIGATION: clean radio-free controls, animated rails.
+st.markdown(r"""
+<style>
+/* Remove native radio dots and their white circular wrappers, while preserving accessible inputs. */
+[data-testid="stSidebar"] [data-testid="stRadio"] [role="radiogroup"] label [data-baseweb="radio"],
+[data-testid="stSidebar"] [data-testid="stRadio"] [role="radiogroup"] label [data-testid="stMarkdownContainer"] ~ div:has(input[type="radio"]),
+[data-testid="stSidebar"] [data-testid="stRadio"] [role="radiogroup"] label > div:first-child:has(input[type="radio"]) {
+  position:absolute!important;width:1px!important;height:1px!important;overflow:hidden!important;
+  clip-path:inset(50%)!important;opacity:0!important;pointer-events:none!important;
+}
+[data-testid="stSidebar"] [role="radiogroup"] label{
+  position:relative!important;display:flex!important;align-items:center!important;
+  min-height:46px!important;padding:12px 15px!important;margin:5px 0!important;
+  border:1px solid rgba(104,239,219,.12)!important;border-radius:12px!important;
+  background:linear-gradient(105deg,rgba(9,64,77,.55),rgba(6,37,52,.22))!important;
+  box-shadow:inset 0 1px rgba(255,255,255,.025)!important;
+  cursor:pointer!important;overflow:hidden!important;
+  transition:transform .28s ease,background .28s ease,border-color .28s ease,box-shadow .28s ease!important;
+}
+[data-testid="stSidebar"] [role="radiogroup"] label::before{
+  content:"";position:absolute;left:0;top:12%;height:76%;width:3px;
+  background:linear-gradient(#15f7c5,#13b4e1);opacity:0;transform:scaleY(.25);
+  transition:opacity .25s,transform .3s;
+}
+[data-testid="stSidebar"] [role="radiogroup"] label::after{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(105deg,transparent 15%,rgba(116,255,236,.12) 48%,transparent 80%);
+  transform:translateX(-140%);transition:transform .75s ease;
+}
+[data-testid="stSidebar"] [role="radiogroup"] label:hover{
+  transform:translateX(5px)!important;border-color:rgba(68,241,215,.52)!important;
+  background:linear-gradient(105deg,rgba(0,137,139,.3),rgba(6,42,55,.48))!important;
+}
+[data-testid="stSidebar"] [role="radiogroup"] label:hover::after{transform:translateX(140%)}
+[data-testid="stSidebar"] [role="radiogroup"] label:has(input:checked){
+  border-color:rgba(55,248,217,.68)!important;
+  background:linear-gradient(100deg,rgba(0,185,156,.28),rgba(9,78,93,.44))!important;
+  box-shadow:0 0 22px rgba(0,213,189,.12),inset 0 0 25px rgba(19,224,198,.05)!important;
+}
+[data-testid="stSidebar"] [role="radiogroup"] label:has(input:checked)::before{opacity:1;transform:scaleY(1)}
+[data-testid="stSidebar"] [role="radiogroup"] label p{
+  color:#e9fffc!important;font-family:'Oxanium','Space Grotesk',sans-serif!important;
+  font-weight:700!important;font-size:12px!important;letter-spacing:.6px!important;
+}
+[data-testid="stSidebar"] [role="radiogroup"] label:has(input:checked) p{color:#93ffe8!important}
+[data-testid="stSidebar"] [role="radiogroup"] label:focus-within{outline:2px solid #7cf7df!important;outline-offset:2px}
+[data-testid="stSidebar"] [data-testid="stRadio"]{
+  border:1px solid rgba(89,235,218,.14)!important;border-radius:16px!important;
+  padding:9px!important;background:linear-gradient(140deg,rgba(8,52,65,.44),rgba(4,26,45,.22))!important;
+}
+[data-testid="stSidebar"]{background-size:220% 220%!important;animation:cap-sidebar-shift 15s ease-in-out infinite alternate!important}
+[data-testid="stSidebar"]::before{content:"";position:absolute;inset:0;pointer-events:none;
+  background:repeating-linear-gradient(135deg,transparent 0 44px,rgba(78,247,218,.025) 45px 46px);
+  animation:cap-sidebar-lines 24s linear infinite;}
+@keyframes cap-sidebar-shift{to{background-position:100% 70%}}
+@keyframes cap-sidebar-lines{to{background-position:130px 0}}
+@media(prefers-reduced-motion:reduce){[data-testid="stSidebar"],[data-testid="stSidebar"]::before{animation:none!important}[data-testid="stSidebar"] [role="radiogroup"] label::after{transition:none!important}}
+</style>
+""", unsafe_allow_html=True)
+
 @st.cache_data
 def dataset():
     rng=np.random.default_rng(91)
@@ -195,11 +281,11 @@ PAGES=['Command Center','Drone Camera Studio','Aerial Image Lab','UAV Intelligen
 
 # Five primary groups; existing sixteen modules remain accessible.
 NAV_GROUPS = {
-    '01  MISSION CONTROL': ['Command Center', 'UAV Intelligence', 'Mission Replay', 'Operations Log'],
-    '02  DRONE & IMAGING': ['Drone Camera Studio', 'Aerial Image Lab', 'Geospatial Explorer'],
-    '03  RESTORATION NETWORK': ['Capsule Tracking', 'Smart Ajir Network', 'Restoration Analysis', 'Species Atlas'],
-    '04  EARTH INTELLIGENCE': ['Coastal Risk Monitor', 'Conservation Analytics', 'CPS Integration'],
-    '05  COMMUNITY & REPORTS': ['Jaga Mangrove', 'Report Generator'],
+    'MISSION CONTROL': ['Command Center', 'UAV Intelligence', 'Mission Replay', 'Operations Log'],
+    'DRONE & IMAGING': ['Drone Camera Studio', 'Aerial Image Lab', 'Geospatial Explorer'],
+    'RESTORATION NETWORK': ['Capsule Tracking', 'Smart Ajir Network', 'Restoration Analysis', 'Species Atlas'],
+    'EARTH INTELLIGENCE': ['Coastal Risk Monitor', 'Conservation Analytics', 'CPS Integration'],
+    'COMMUNITY & REPORTS': ['Jaga Mangrove', 'Report Generator'],
 }
 
 with st.sidebar:
@@ -208,7 +294,7 @@ with st.sidebar:
     else:
         st.markdown('## CAPTRACE')
     st.markdown('<span class="pulse"></span><span style="font-size:11px;letter-spacing:2px">CONSERVATION INTELLIGENCE</span>',unsafe_allow_html=True)
-    st.markdown('<div class="nav-caption">PRIMARY SYSTEMS / 05</div>',unsafe_allow_html=True)
+    st.markdown('<div class="nav-caption">MISSION SYSTEMS</div>',unsafe_allow_html=True)
     group = st.radio('MAIN SYSTEMS', list(NAV_GROUPS), label_visibility='collapsed', key='nav_group')
     st.markdown('<div class="nav-caption">SELECT MODULE</div>',unsafe_allow_html=True)
     page = st.radio('SUBMODULES', NAV_GROUPS[group], label_visibility='collapsed', key=f'nav_sub_{list(NAV_GROUPS).index(group)}')
@@ -303,6 +389,7 @@ def downloadable_image(im,name):
     b=BytesIO();im.save(b,format='PNG');st.download_button('Download camera frame (PNG)',b.getvalue(),name,'image/png')
 
 if page=='Drone Camera Studio':
+    st.info('MISSION VIEW / Camera imagery and telemetry are simulated. Upload verified UAV footage in Aerial Image Lab for actual image processing.')
     section('Aerial observation / Camera station','UAV Visual Intelligence Studio')
     st.markdown('<div class="vision-banner"><strong>OPTICAL COMMAND / MULTI-SPECTRAL VIEWER</strong><small>Instrument overlay, target reticle, optical modes and replay timeline. Built-in scenes are generated visual references; upload real imagery in Aerial Image Lab.</small></div>',unsafe_allow_html=True)
     a,b,c,d=st.columns([1.2,1.2,1.2,1])
@@ -429,6 +516,19 @@ elif page=='Report Generator':
     st.download_button('Download report (TXT)',report,'captrace_report.txt','text/plain')
 
 if page=='Command Center':
+    st.markdown("""<div class="ct-glass"><div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap"><div><small><span class="ct-live"></span> &nbsp; CAPTRACE / EARTH SYSTEMS INTERFACE</small><h3>RESTORATION MISSION NETWORK</h3><p>UAV telemetry · Capsule traceability · Environmental sensing · Decision intelligence</p></div><div style="font:700 12px Oxanium;letter-spacing:2px;color:#5dffe0">SAYUNG / DEMAK<br>MISSION SIMULATION</div></div><svg class="ct-orbit" viewBox="0 0 1000 180" role="img" aria-label="Animated schematic of UAV, capsule and sensor network"><defs><linearGradient id="ctg"><stop stop-color="#34f5d2"/><stop offset="1" stop-color="#2d94ee"/></linearGradient></defs><g stroke="#44ead1" stroke-opacity=".3" fill="none"><path d="M130 90H870" stroke-dasharray="7 9"/><path d="M300 40L500 90L700 40M300 140L500 90L700 140" stroke-dasharray="4 7"/></g><g transform="translate(500 90)"><circle r="64" stroke="#34edc6" opacity=".3" fill="none"/><circle class="ct-ring" r="55" stroke="url(#ctg)" stroke-width="2" stroke-dasharray="90 35 15 55" fill="none"/><circle class="ct-ring reverse" r="39" stroke="#64c6ff" stroke-width="2" stroke-dasharray="40 20 8 30" fill="none"/><circle r="24" fill="#16bfa7" opacity=".24"/><text y="5" fill="#f2fffb" text-anchor="middle" font-family="Oxanium" font-size="13" font-weight="700">CPS</text></g><g fill="#d9fff8" font-family="Oxanium" font-size="15" text-anchor="middle"><circle cx="130" cy="90" r="26" fill="#0c6e75" stroke="#42f3d5"/><text x="130" y="95">UAV</text><circle cx="300" cy="40" r="19" fill="#0b5369" stroke="#68c9f8"/><text x="300" y="45" font-size="10">RGB</text><circle cx="300" cy="140" r="19" fill="#0b5369" stroke="#68c9f8"/><text x="300" y="145" font-size="10">GPS</text><circle cx="700" cy="40" r="21" fill="#0b5369" stroke="#68c9f8"/><text x="700" y="45" font-size="10">IOT</text><circle cx="700" cy="140" r="23" fill="#0b5369" stroke="#68c9f8"/><text x="700" y="145" font-size="9">DATA</text><circle cx="870" cy="90" r="28" fill="#0c6e75" stroke="#42f3d5"/><text x="870" y="95" font-size="12">FIELD</text></g><circle class="ct-pulse" cx="130" cy="90" r="7" fill="#a1ffeb"/></svg></div>""",unsafe_allow_html=True)
+    with st.expander('MISSION SIMULATION CONSOLE · Interactive scenarios', expanded=False):
+        a,b,c=st.columns(3)
+        mission=a.selectbox('Mission profile',['Coastal survey','Sensor inspection','Capsule distribution'])
+        intensity=b.slider('Simulation intensity',1,10,5)
+        readiness=c.select_slider('Weather suitability',['Poor','Moderate','Favorable'],value='Moderate')
+        risk=max(0,min(100,int(65+intensity*3+({'Poor':-45,'Moderate':-10,'Favorable':15}[readiness]))))
+        x,y,z=st.columns(3)
+        x.metric('MISSION READINESS',f'{risk}%')
+        y.metric('EST. FLIGHT WINDOW',f'{max(8,48-intensity*2)} min')
+        z.metric('SELECTED PROFILE',mission)
+        st.progress(risk/100)
+        st.caption('Planning scenario only; not an aviation safety clearance or actual UAV telemetry.')
     section('01 / Ecosystem overview','Environmental Intelligence Hub')
     a,b,c,d=st.columns(4)
     a.metric('HEALTH INDEX','68.4%','+4.2 pts');b.metric('SMART AJIR NODES','48','36 online');c.metric('CAPSULE REGISTRY','500','5 species');d.metric('RESTORATION ZONES','03','Z1–Z3')
@@ -525,6 +625,10 @@ elif page=='Smart Ajir Network':
     st.dataframe(sensors if zone=='All zones' else sensors[sensors.Zone==zone],use_container_width=True,hide_index=True)
 
 elif page=='Geospatial Explorer':
+    with st.expander('GEOSPATIAL OPERATIONS · Layer intelligence', expanded=False):
+        scenario=st.selectbox('Analysis preset',['Habitat assessment','Sensor coverage','Restoration logistics'])
+        detail=st.slider('Interpretation detail',1,5,3)
+        st.caption(f'Active scenario: {scenario}. Detail level {detail}/5. Map markers are illustrative until field-verified coordinates are supplied.')
     section('01 / Earth observation','Interactive geographic explorer')
     a,b=st.columns([1,2]);basemap=a.selectbox('Base map',['Satellite','OpenStreetMap','Terrain']);layers=b.multiselect('Map overlays',['Sensor nodes','Capsule sites','Planning zones'],default=['Sensor nodes','Capsule sites','Planning zones'])
     real_map(layers,basemap,height=610)
@@ -589,4 +693,4 @@ elif page=='Jaga Mangrove':
 st.divider()
 with st.expander('Data sources & methodology'):
     st.write('Basemap: OpenStreetMap / CartoDB / Esri World Imagery. Sensor readings, capsule records, performance series, map overlays and financial estimates are illustrative interface datasets. Replace with verified field data before operational use.')
-st.caption('CAPTRACE 8.0  /  CAPSULE-BASED TRACEABILITY SYSTEM  /  SAYUNG COASTAL INTELLIGENCE')
+st.caption('CAPTRACE 12.0  /  CAPSULE-BASED TRACEABILITY SYSTEM  /  SAYUNG COASTAL INTELLIGENCE')
